@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calcule Trade Maa Optimisé</title>
-<link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Trade Maa">
@@ -20,7 +19,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
 .input-data label{font-size:14px;color:#666;margin-bottom:4px;}
 .input-data input,.input-data textarea{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;width:100%;}
 .input-data input:focus,.input-data textarea:focus{border-color:#9f01ea;outline:none;}
-.submit-btns{display:flex;flex-wrap:wrap;gap:8px;}
+.submit-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
 .submit-btns input{flex:1;padding:11px;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;color:#fff;background:linear-gradient(135deg,#56d8e4,#9f01ea);transition:.3s;}
 .submit-btns input:hover{opacity:.9;transform:scale(1.02);}
 .results{margin-top:15px;font-size:15px;line-height:1.5;}
@@ -40,9 +39,10 @@ td img{width:50px;height:50px;object-fit:cover;border-radius:6px;}
 @media(max-width:600px){.text{font-size:22px;}th,td{font-size:13px;}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
-    <script>
+<script>
 let dataList=[],selectedIndex=null;
 
+// Charger les données sauvegardées
 window.onload=function(){
     const saved=localStorage.getItem("tradeMaaData");
     if(saved){dataList=JSON.parse(saved);}
@@ -50,7 +50,7 @@ window.onload=function(){
 };
 function saveData(){localStorage.setItem("tradeMaaData",JSON.stringify(dataList));}
 
-// --- Calcul principal ---
+// Calcul principal
 function calc(show=false){
     const pcb=parseFloat(formulaire.pcb.value);
     const cbm=parseFloat(formulaire.cbm.value);
@@ -75,12 +75,7 @@ function calc(show=false){
     return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
 }
 
-function toggleInfoBox(){ 
-    const box=document.getElementById("infoBox");
-    box.style.display=(box.style.display==="none"||!box.style.display)?"block":"none";
-}
-
-// --- Ajout / Mise à jour d'une ligne ---
+// Ajouter / mettre à jour ligne
 function ajouter(){
     const result=calc(true);
     if(!result)return;
@@ -102,33 +97,22 @@ function ajouter(){
     }
     saveData();
     renderTable();
-    formulaire.reset();
-    document.getElementById("result").innerHTML="";
-    document.getElementById("refInput").value="";
-    document.getElementById("descInput").value="";
-    document.getElementById("photoInput").value="";
-    delete document.getElementById("photoInput").dataset.base64;
-    document.getElementById("infoBox").style.display="none";
+    resetForm();
 }
 
-// --- Convertir image en base64 pour stockage ---
+// Convertir image en Base64
 function handlePhotoUpload(event){
     const file=event.target.files[0];
     if(!file)return;
     const reader=new FileReader();
-    reader.onload=function(e){
-        document.getElementById("photoInput").dataset.base64=e.target.result;
-    };
+    reader.onload=function(e){document.getElementById("photoInput").dataset.base64=e.target.result;}
     reader.readAsDataURL(file);
 }
 
-// --- Affichage du tableau ---
+// Tableau
 function renderTable(){
     const tbody=document.getElementById("table-body");
-    if(dataList.length===0){
-        tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>';
-        return;
-    }
+    if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>';return;}
     tbody.innerHTML=dataList.map((it,i)=>`
     <tr class="${selectedIndex===i?'selected':''}">
         <td>${i+1}</td>
@@ -137,19 +121,16 @@ function renderTable(){
         <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
         <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
         <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
-        <td>${it.photo ? `<img src="${it.photo}" onclick="openPhoto('${it.photo}')">` : '—'}</td>
+        <td>${it.photo?`<img src="${it.photo}" onclick="openPhoto('${it.photo}')">`:'—'}</td>
         <td>
             <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
             <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
         </td>
     </tr>`).join("");
 }
-
 function openPhoto(src){window.open(src,'_blank');}
-
-function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description";saveData();}
 function updateRef(i,text){dataList[i].ref=text.trim().toUpperCase()||"SANS REFERENCE";saveData();}
-
+function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description";saveData();}
 function editRow(e,i){
     e.stopPropagation();
     const it=dataList[i];
@@ -194,17 +175,19 @@ function exportCSV(){
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download="Simulations_TradeMaa.csv";a.click();URL.revokeObjectURL(url);
 }
-function clearStorage(){
-    if(confirm("Effacer toutes les données sauvegardées ?")){
-        localStorage.removeItem("tradeMaaData");
-        dataList=[];renderTable();
-    }
+function exportXLSX(){
+    if(dataList.length===0){alert("Aucune donnée à exporter.");return;}
+    const wsData=[["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo(Base64)"]];
+    dataList.forEach((it,i)=>{wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),it.photo||""]);});
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb,ws,"Simulations");
+    XLSX.writeFile(wb,"Simulations_TradeMaa.xlsx");
 }
+function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData");dataList=[];renderTable();}}
 </script>
-    
 </head>
 <body>
-
 <div class="container">
     <div class="text">Calcule Trade Maa</div>
     <form name="formulaire" onsubmit="return false;">
@@ -218,30 +201,21 @@ function clearStorage(){
             <div class="input-data"><label>Tracking (€)</label><input type="number" name="tracking" value="1400" required></div>
             <div class="input-data"><label>Douane (%)</label><input type="number" name="douane" value="6.5" step="0.01" required></div>
         </div>
-
         <div class="submit-btns">
             <input type="button" value="📊 Calculer" onclick="calc(true)">
-            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox()">
+            <input type="button" id="addBtn" value="➕ Ajouter" onclick="document.getElementById('infoBox').style.display='block'">
             <input type="button" value="🧹 Vider" onclick="resetForm()">
             <input type="button" value="📤 Exporter CSV" onclick="exportCSV()">
+            <input type="button" value="📤 Exporter XLSX" onclick="exportXLSX()">
         </div>
-
         <div id="infoBox" class="hidden-box">
-            <div class="input-data">
-                <label>Référence</label>
-                <input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001">
-            </div>
+            <div class="input-data"><label>Référence</label><input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
             <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
-            <div class="input-data">
-                <label>Photo (caméra ou fichier)</label>
-                <input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)">
-            </div>
+            <div class="input-data"><label>Photo (caméra ou fichier)</label><input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
             <input type="button" style="margin-top:8px" value="💾 Enregistrer la ligne" onclick="ajouter()">
         </div>
     </form>
-
     <div id="result" class="results"></div>
-
     <div class="table-zone">
         <h3 style="text-align:center;margin-top:15px;">📋 Tableau des simulations</h3>
         <button class="clear-btn" onclick="clearStorage()">🗑️ Effacer les données sauvegardées</button>
@@ -256,7 +230,5 @@ function clearStorage(){
         </table>
     </div>
 </div>
-
-<script src="1script.js"></script>
 </body>
 </html>
