@@ -126,35 +126,83 @@ function ajouter(){
     renderTable();
     resetForm();
 }
-
-// --- Photo upload ---
-function handlePhotoUpload(event){
-    const file = event.target.files[0];
-    if(!file) return;
+// resize 
+    function resizeImage(file, maxWidth = 800, maxHeight = 800, callback) {
     const reader = new FileReader();
-    reader.onload = function(e){
-        event.target.dataset.base64 = e.target.result;
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            let width = img.width;
+            let height = img.height;
+
+            // Calcul du ratio pour respecter maxWidth et maxHeight
+            const scale = Math.min(maxWidth / width, maxHeight / height, 1);
+            width = width * scale;
+            height = height * scale;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convertit en base64 JPEG (qualité 0.8 pour réduire la taille)
+            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+            callback(resizedDataUrl);
+        };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+function dataURItoBlob(dataURI) {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    return new Blob([ab], { type: mimeString });
+}
+// --- Photo upload ---
+function handlePhotoUpload(event){
+   const file = event.target.files[0];
+    if (!file) return;
+
+    resizeImage(file, 800, 800, function(resizedDataUrl) {
+        // Stocke la version redimensionnée
+        event.target.dataset.base64 = resizedDataUrl;
+
+        // Crée un URL temporaire pour l'affichage dans le tableau (Safari friendly)
+        const blob = dataURItoBlob(resizedDataUrl);
+        const url = URL.createObjectURL(blob);
+        event.target.dataset.url = url;
+
+        // Rafraîchir le tableau si tu veux afficher l'image immédiatement
+        renderTable();
+    });
 }
 
 // --- Tableau ---
 function renderTable(){
     const tbody = document.getElementById("table-body");
     if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>'; return;}
-    tbody.innerHTML = dataList.map((it,i)=>`
-        <tr class="${selectedIndex===i?'selected':''}">
-            <td>${i+1}</td>
-            <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
-            <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
-            <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
-            <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
-            <td>${it.photo ? `<img src="${it.photo}" onclick="openPhoto('${it.photo}')">` : '—'}</td>
-            <td>
-                <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
-                <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
-            </td>
-        </tr>`).join("");
+    tbody.innerHTML = dataList.map((it, i) => {
+    const photoSrc = it.url || it.photo || '';
+    return `
+            <tr class="${selectedIndex===i?'selected':''}">
+                <td>${i+1}</td>
+                <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
+                <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
+                <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
+                <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
+                <td>${photoSrc ? `<img src="${photoSrc}" onclick="openPhoto('${photoSrc}')">` : '—'}</td>
+                <td>
+                    <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
+                    <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
+                </td>
+            </tr>`;
+    }).join("");
 }
 function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description"; saveData();}
 function updateRef(i,text){dataList[i].ref=text.trim().toUpperCase()||"SANS REFERENCE"; saveData();}
