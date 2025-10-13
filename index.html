@@ -178,18 +178,47 @@ function exportCSV(){
     const a=document.createElement("a");a.href=url;a.download="Simulations_TradeMaa.csv";a.click();URL.revokeObjectURL(url);
 }
 function exportXLSX(){
-    
+    if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
+
+    // Vérifier si XLSX est chargé
     if(typeof XLSX === "undefined"){
-        alert("La librairie XLSX n'est pas chargée.");
+        alert("La librairie XLSX n'est pas chargée. Export CSV utilisé à la place.");
+        exportCSV();
         return;
     }
-    if(dataList.length===0){alert("Aucune donnée à exporter.");return;}
-    const wsData=[["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo(Base64)"]];
-    dataList.forEach((it,i)=>{wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),it.photo||""]);});
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, "Simulations");
-    XLSX.writeFile(wb, "Simulations_TradeMaa.xlsx");
+
+    // Préparer les données pour XLSX
+    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo(Base64)"]];
+    dataList.forEach((it,i)=>{
+        wsData.push([
+            i+1,
+            it.date,
+            it.ref,
+            it.description,
+            it.fob,
+            it.pcb,
+            it.cbm,
+            it.maritime,
+            it.tracking,
+            it.douane,
+            it.pnew,
+            it.pvp.toFixed(2),
+            it.photo || ""
+        ]);
+    });
+
+    try {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, "Simulations");
+
+        // Téléchargement pour desktop
+        XLSX.writeFile(wb, "Simulations_TradeMaa.xlsx");
+    } catch(e) {
+        console.error("Erreur export XLSX:", e);
+        alert("Impossible de générer le fichier XLSX. Export CSV utilisé à la place.");
+        exportCSV();
+    }
 
 }
 function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData");dataList=[];renderTable();}}
