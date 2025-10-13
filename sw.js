@@ -8,9 +8,16 @@ const urlsToCache = [
   "./icons/icon-512.png"
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+    caches.open('v1').then(cache => {
+      const urls = ['/', '/style.css', '/script.js', '/icons/icon-192.png', '/manifest.json'];
+      return Promise.all(
+        urls.map(url => cache.add(url).catch(err => {
+          console.warn('Fichier non trouvé, cache ignoré:', url);
+        }))
+      );
+    })
   );
 });
 
