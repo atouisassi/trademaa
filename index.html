@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calcule Trade Maa Optimisé</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#9f01ea">
+</head>
+<body>
+<div class="container">
+    <div class="text">Calcule Trade Maa</div>
+
+    <form name="formulaire" id="formulaire" onsubmit="return calc();">
+        <div class="form-row">
+            <div class="input-data">
+                <label for="fob">FOB ($)</label>
+                <input type="number" id="fob" name="fob" step="0.01" required />
+            </div>
+            <div class="input-data">
+                <label for="pcb">PCB</label>
+                <input type="number" id="pcb" name="pcb" required />
+            </div>
+            <div class="input-data">
+                <label for="cbm">CBM</label>
+                <input type="number" id="cbm" name="cbm" step="0.00001" required />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="input-data">
+                <label for="maritime">Maritime (€)</label>
+                <input type="number" id="maritime" name="maritime" value="2500" required />
+            </div>
+            <div class="input-data">
+                <label for="tracking">Tracking (€)</label>
+                <input type="number" id="tracking" name="tracking" value="1400" required />
+            </div>
+            <div class="input-data">
+                <label for="douane">Douane (%)</label>
+                <input type="number" id="douane" name="douane" value="6.5" step="0.01" required />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <button type="submit" class="btn-primary">Calculer</button>
+            <button type="button" id="resetBtn" class="btn-secondary">Vider</button>
+            <button type="button" id="addBtn" class="btn-success">Ajouter</button>
+            <button type="button" id="exportBtn" class="btn-warning">Exporter XLSX</button>
+        </div>
+    </form>
+
+    <div id="result" class="results"></div>
+
+    <div class="extra-form hidden" id="extraForm">
+        <label>Référence :</label>
+        <input type="text" id="refInput" class="uppercase" placeholder="REF1234">
+        <label>Description :</label>
+        <textarea id="descInput" rows="2" placeholder="Description..."></textarea>
+        <label>Photo :</label>
+        <input type="file" id="photoInput" accept="image/*">
+    </div>
+
+    <div class="table-container">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Réf</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Prix (€)</th>
+                    <th>Photo</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
