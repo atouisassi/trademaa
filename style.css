@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f4f4f4; padding: 10px; }
+.container { max-width: 900px; background: #fff; padding: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.1); border-radius: 8px; width: 100%; }
+.text { text-align: center; font-size: 28px; font-weight: 600; color: #333; margin-bottom: 20px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px; }
+.input-data { flex: 1; min-width: 120px; position: relative; }
+.input-data label { font-size: 14px; color: #666; display: block; margin-bottom: 5px; }
+.input-data input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+.submit-btn input, button { width: 100%; padding: 10px; border: none; background: linear-gradient(to right,#56d8e4,#9f01ea); color: #fff; font-size: 16px; cursor: pointer; border-radius: 5px; }
+.results { margin-top: 15px; font-size: 16px; }
+.extra-fields { margin-top: 20px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
+@media (max-width: 700px) { .form-row { flex-direction: column; } }
