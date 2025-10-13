@@ -378,5 +378,13 @@ function exportCSV(){
 function openPhoto(src){window.open(src,'_blank');}
 function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData"); dataList=[]; renderTable();}}
 </script>
+   <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(() => console.log("Service Worker enregistré ✅"))
+    .catch(err => console.log("SW erreur :", err));
+}
+</script>
+
 </body>
 </html>
