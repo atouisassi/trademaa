@@ -1,6 +1,9 @@
 let dataList = [];
 let currentPhoto = "";
-
+document.getElementById('formulaire').addEventListener('submit', function(e){
+    e.preventDefault(); // empêche le reload
+    calc();
+});
 function calc() {
     const fob = parseFloat(document.formulaire.fob.value);
     const pcb = parseFloat(document.formulaire.pcb.value);
@@ -32,7 +35,7 @@ function calc() {
         ${pv.toFixed(3)} : P. sans RFA<br>
         ${rfa.toFixed(3)} : RFA 6%<br>
         <hr/><strong>Prix vente mag coef 2 : ${pvp} €</strong>`;
-    return false;
+ //   return false;
 }
 
 function resetForm(){
