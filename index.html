@@ -260,16 +260,22 @@ async function exportXLSXOrCSV() {
         img.src = it.photo;
         await new Promise(res => { img.onload = res; img.onerror = res; });
         const canvas = document.createElement('canvas');
-        const size = 50;
-        canvas.width = size; canvas.height = size;
+        const maxSize = 200; // taille maximale du côté le plus long
         const ctx = canvas.getContext('2d');
-        // si l'image n'a pas chargé, on laisse photoCell vide
+        
         if (img.naturalWidth && img.naturalHeight) {
-          const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight);
-          const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-          ctx.clearRect(0,0,size,size);
-          ctx.drawImage(img, (size - w)/2, (size - h)/2, w, h);
-          photoCell = canvas.toDataURL('image/png');
+            // Calcul du scale pour que le côté le plus long = maxSize
+            const scale = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight, 1);
+            const w = img.naturalWidth * scale;
+            const h = img.naturalHeight * scale;
+            canvas.width = w;
+            canvas.height = h;
+            
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+        
+            // Conversion en base64 pour Excel
+            photoCell = canvas.toDataURL('image/png');
         }
       }
 
