@@ -3,226 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calcule Trade Maa Optimisé</title>
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Trade Maa">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Calcule Trade Maa</title>
+<link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
-
 <style>
-@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
-body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:10px;background:#f4f4f4;}
-.container{width:100%;max-width:580px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);}
-.text{text-align:center;font-size:24px;font-weight:600;color:#333;margin-bottom:10px;}
+/* Styles simplifiés et responsive */
+body{margin:0;font-family:'Poppins',sans-serif;background:#f4f4f4;display:flex;justify-content:center;padding:10px;}
+.container{width:100%;max-width:600px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);}
+.text{text-align:center;font-size:24px;font-weight:600;margin-bottom:10px;}
 .form-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
-.input-data{flex:1;display:flex;flex-direction:column;min-width:100px;}
+.input-data{flex:1;display:flex;flex-direction:column;}
 .input-data label{font-size:14px;color:#666;margin-bottom:4px;}
-.input-data input,.input-data textarea{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;width:100%;}
-.input-data input:focus,.input-data textarea:focus{border-color:#9f01ea;outline:none;}
+.input-data input, .input-data textarea{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;width:100%;}
+.input-data input:focus, .input-data textarea:focus{border-color:#9f01ea;outline:none;}
 .submit-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
-.submit-btns input{flex:1;padding:11px;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;color:#fff;background:linear-gradient(135deg,#56d8e4,#9f01ea);transition:.3s;}
-.submit-btns input:hover{opacity:.9;transform:scale(1.02);}
-.results{margin-top:15px;font-size:15px;line-height:1.5;}
-.table-zone{margin-top:20px;overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;}
+.submit-btns input{flex:1;padding:11px;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;color:#fff;background:linear-gradient(135deg,#56d8e4,#9f01ea);}
+.results{margin-top:10px;font-size:15px;line-height:1.5;}
+.table-zone{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px;}
 th,td{border:1px solid #ddd;padding:6px;text-align:center;}
 th{background:#f8f8f8;}
 tr.selected{background:#e4d2ff;}
 td.editable{background:#fffbe7;cursor:text;}
 td img{width:50px;height:50px;object-fit:cover;border-radius:6px;}
-.action-btn{background:none;border:none;color:#9f01ea;cursor:pointer;font-size:16px;}
-.action-btn:hover{transform:scale(1.2);}
 .hidden-box{display:none;margin-top:12px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa;}
-.hidden-box textarea{resize:vertical;min-height:60px;}
 .clear-btn{color:#555;background:#eee;border:none;border-radius:8px;padding:8px 10px;margin-top:6px;cursor:pointer;font-size:13px;}
 .clear-btn:hover{background:#ddd;}
 @media(max-width:600px){.text{font-size:22px;}th,td{font-size:13px;}}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
-<script>
-let dataList=[],selectedIndex=null;
-
-// Charger les données sauvegardées
-window.onload=function(){
-    const saved=localStorage.getItem("tradeMaaData");
-    if(saved){dataList=JSON.parse(saved);}
-    renderTable();
-};
-function saveData(){localStorage.setItem("tradeMaaData",JSON.stringify(dataList));}
-
-// Calcul principal
-function calc(show=false){
-    const pcb=parseFloat(formulaire.pcb.value);
-    const cbm=parseFloat(formulaire.cbm.value);
-    const fob=parseFloat(formulaire.fob.value);
-    const maritime=parseFloat(formulaire.maritime.value);
-    const douane=parseFloat(formulaire.douane.value)/100;
-    const tracking=parseFloat(formulaire.tracking.value);
-    if([pcb,cbm,fob,maritime,douane,tracking].some(isNaN)){alert("Champs invalides");return false;}
-    let pr=((56/cbm)*pcb*fob)+maritime;
-    pr=pr*(1+douane)+tracking;
-    pr/=((56/cbm)*pcb);
-    const mcmp=pr/0.88,log=pr*0.15,pv=log+mcmp,rfa=pv*0.06,pvrfa=pv+rfa;
-    const pnew=(pvrfa/1).toFixed(2);
-    const pvp=Math.ceil((pvrfa*2)*2)/2-0.01;
-    if(show){
-        document.getElementById("result").innerHTML=`
-        <hr><strong>💶 Prix 2025 : ${pnew} €</strong><br>
-        ${pr.toFixed(3)} : P.Brute | ${mcmp.toFixed(3)} : CMP | ${log.toFixed(3)} : Log +15%<br>
-        ${rfa.toFixed(3)} : RFA | ${pv.toFixed(3)} : P.sans RFA<br>
-        <strong>🏷️ Prix vente (x2) : ${pvp.toFixed(2)} €</strong><hr>`;
-    }
-    return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
-}
-
-// Ajouter / mettre à jour ligne
-function ajouter(){
-    const result=calc(true);
-    if(!result)return;
-    const ref=document.getElementById("refInput").value.trim().toUpperCase()||"SANS REFERENCE";
-    const desc=document.getElementById("descInput").value.trim()||"Sans description";
-    const photo=document.getElementById("photoInput").dataset.base64||"";
-    const now=new Date();
-    const dateStr=now.toLocaleDateString()+" "+now.toLocaleTimeString();
-    const entry={ref,description:desc,date:dateStr,photo,
-        fob:formulaire.fob.value,pcb:formulaire.pcb.value,cbm:formulaire.cbm.value,
-        maritime:formulaire.maritime.value,tracking:formulaire.tracking.value,
-        douane:formulaire.douane.value,...result};
-    if(selectedIndex!==null){
-        dataList[selectedIndex]=entry;
-        selectedIndex=null;
-        document.getElementById("addBtn").value="➕ Ajouter";
-    }else{
-        dataList.push(entry);
-    }
-    saveData();
-    renderTable();
-    resetForm();
-}
-
-// Convertir image en Base64
-function handlePhotoUpload(event){
-    const file=event.target.files[0];
-    if(!file)return;
-    const reader=new FileReader();
-    reader.onload=function(e){document.getElementById("photoInput").dataset.base64=e.target.result;}
-    reader.readAsDataURL(file);
-}
-
-// Tableau
-function renderTable(){
-    const tbody=document.getElementById("table-body");
-    if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>';return;}
-    tbody.innerHTML=dataList.map((it,i)=>`
-    <tr class="${selectedIndex===i?'selected':''}">
-        <td>${i+1}</td>
-        <td>${it.date}</td>
-        <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
-        <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
-        <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
-        <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
-        <td>${it.photo?`<img src="${it.photo}" onclick="openPhoto('${it.photo}')">`:'—'}</td>
-        <td>
-            <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
-            <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
-        </td>
-    </tr>`).join("");
-}
-function openPhoto(src){window.open(src,'_blank');}
-function updateRef(i,text){dataList[i].ref=text.trim().toUpperCase()||"SANS REFERENCE";saveData();}
-function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description";saveData();}
-function editRow(e,i){
-    e.stopPropagation();
-    const it=dataList[i];
-    formulaire.fob.value=it.fob;
-    formulaire.pcb.value=it.pcb;
-    formulaire.cbm.value=it.cbm;
-    formulaire.maritime.value=it.maritime;
-    formulaire.tracking.value=it.tracking;
-    formulaire.douane.value=it.douane;
-    document.getElementById("refInput").value=it.ref;
-    document.getElementById("descInput").value=it.description;
-    selectedIndex=i;
-    document.getElementById("addBtn").value="💾 Mettre à jour";
-    document.getElementById("infoBox").style.display="block";
-    renderTable();
-}
-function deleteRow(e,i){
-    e.stopPropagation();
-    if(confirm("Supprimer cette ligne ?")){
-        dataList.splice(i,1);
-        selectedIndex=null;
-        document.getElementById("addBtn").value="➕ Ajouter";
-        saveData();
-        renderTable();
-    }
-}
-function resetForm(){
-    formulaire.reset();
-    document.getElementById("result").innerHTML="";
-    document.getElementById("refInput").value="";
-    document.getElementById("descInput").value="";
-    document.getElementById("photoInput").value="";
-    delete document.getElementById("photoInput").dataset.base64;
-    selectedIndex=null;
-    document.getElementById("addBtn").value="➕ Ajouter";
-}
-function exportCSV(){
-    if(dataList.length===0){alert("Aucune donnée à exporter.");return;}
-    const headers=["Date","Référence","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente"];
-    const rows=dataList.map(it=>[it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2)]);
-    const csv=[headers.join(";"),...rows.map(r=>r.map(x=>`"${x}"`).join(";"))].join("\n");
-    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download="Simulations_TradeMaa.csv";a.click();URL.revokeObjectURL(url);
-}
-function exportXLSX(){
-    if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
-
-    // Vérifier si XLSX est chargé
-    if(typeof XLSX === "undefined"){
-        alert("La librairie XLSX n'est pas chargée. Export CSV utilisé à la place.");
-        exportCSV();
-        return;
-    }
-
-    // Préparer les données pour XLSX
-    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo(Base64)"]];
-    dataList.forEach((it,i)=>{
-        wsData.push([
-            i+1,
-            it.date,
-            it.ref,
-            it.description,
-            it.fob,
-            it.pcb,
-            it.cbm,
-            it.maritime,
-            it.tracking,
-            it.douane,
-            it.pnew,
-            it.pvp.toFixed(2),
-            it.photo || ""
-        ]);
-    });
-
-    try {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, "Simulations");
-
-        // Téléchargement pour desktop
-        XLSX.writeFile(wb, "Simulations_TradeMaa.xlsx");
-    } catch(e) {
-        console.error("Erreur export XLSX:", e);
-        alert("Impossible de générer le fichier XLSX. Export CSV utilisé à la place.");
-        exportCSV();
-    }
-
-}
-function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData");dataList=[];renderTable();}}
-</script>
 </head>
 <body>
 <div class="container">
@@ -238,21 +46,26 @@ function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?"
             <div class="input-data"><label>Tracking (€)</label><input type="number" name="tracking" value="1400" required></div>
             <div class="input-data"><label>Douane (%)</label><input type="number" name="douane" value="6.5" step="0.01" required></div>
         </div>
+
         <div class="submit-btns">
             <input type="button" value="📊 Calculer" onclick="calc(true)">
-            <input type="button" id="addBtn" value="➕ Ajouter" onclick="document.getElementById('infoBox').style.display='block'">
+            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox()">
             <input type="button" value="🧹 Vider" onclick="resetForm()">
-            <input type="button" value="📤 Exporter CSV" onclick="exportCSV()">
-            <input type="button" value="📤 Exporter XLSX" onclick="exportXLSX()">
+            <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV()">
         </div>
+
         <div id="infoBox" class="hidden-box">
-            <div class="input-data"><label>Référence</label><input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
+            <div class="input-data"><label>Référence</label>
+                <input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
             <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
-            <div class="input-data"><label>Photo (caméra ou fichier)</label><input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
+            <div class="input-data"><label>Photo (caméra ou fichier)</label>
+                <input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
             <input type="button" style="margin-top:8px" value="💾 Enregistrer la ligne" onclick="ajouter()">
         </div>
     </form>
+
     <div id="result" class="results"></div>
+
     <div class="table-zone">
         <h3 style="text-align:center;margin-top:15px;">📋 Tableau des simulations</h3>
         <button class="clear-btn" onclick="clearStorage()">🗑️ Effacer les données sauvegardées</button>
@@ -267,5 +80,167 @@ function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?"
         </table>
     </div>
 </div>
+
+<script>
+let dataList=[], selectedIndex=null;
+
+window.onload = function(){
+    const saved = localStorage.getItem("tradeMaaData");
+    if(saved){dataList = JSON.parse(saved);}
+    renderTable();
+};
+
+function saveData(){localStorage.setItem("tradeMaaData", JSON.stringify(dataList));}
+
+// --- Calcul ---
+function calc(show=false){
+    const f = document.formulaire;
+    const pcb = parseFloat(f.pcb.value);
+    const cbm = parseFloat(f.cbm.value);
+    const fob = parseFloat(f.fob.value);
+    const maritime = parseFloat(f.maritime.value);
+    const douane = parseFloat(f.douane.value)/100;
+    const tracking = parseFloat(f.tracking.value);
+    if([pcb,cbm,fob,maritime,douane,tracking].some(isNaN)){alert("Champs invalides");return false;}
+    let pr=((56/cbm)*pcb*fob)+maritime;
+    pr=pr*(1+douane)+tracking;
+    pr/=((56/cbm)*pcb);
+    const mcmp=pr/0.88, log=pr*0.15, pv=log+mcmp, rfa=pv*0.06, pvrfa=pv+rfa;
+    const pnew = (pvrfa/1).toFixed(2);
+    const pvp = Math.ceil((pvrfa*2)*2)/2-0.01;
+    if(show){
+        document.getElementById("result").innerHTML = `
+            <hr><strong>💶 Prix 2025 : ${pnew} €</strong><br>
+            ${pr.toFixed(3)} : P.Brute | ${mcmp.toFixed(3)} : CMP | ${log.toFixed(3)} : Log +15%<br>
+            ${rfa.toFixed(3)} : RFA | ${pv.toFixed(3)} : P.sans RFA<br>
+            <strong>🏷️ Prix vente (x2) : ${pvp.toFixed(2)} €</strong><hr>`;
+    }
+    return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
+}
+
+function toggleInfoBox(){ 
+    const box=document.getElementById("infoBox");
+    box.style.display=(box.style.display==="none"||!box.style.display)?"block":"none";
+}
+
+// --- Ajouter / éditer ligne ---
+function ajouter(){
+    const result = calc(true);
+    if(!result) return;
+    const ref = (document.getElementById("refInput").value || "SANS REFERENCE").toUpperCase();
+    const desc = document.getElementById("descInput").value || "Sans description";
+    const photo = document.getElementById("photoInput").dataset.base64 || "";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString()+" "+now.toLocaleTimeString();
+    const f = document.formulaire;
+    const entry = {ref, description:desc, date:dateStr, photo,
+        fob:f.fob.value, pcb:f.pcb.value, cbm:f.cbm.value,
+        maritime:f.maritime.value, tracking:f.tracking.value, douane:f.douane.value,
+        ...result};
+    if(selectedIndex !== null){
+        dataList[selectedIndex] = entry;
+        selectedIndex = null;
+        document.getElementById("addBtn").value="➕ Ajouter";
+    } else { dataList.push(entry); }
+    saveData();
+    renderTable();
+    resetForm();
+}
+
+// --- Photo upload ---
+function handlePhotoUpload(event){
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        event.target.dataset.base64 = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// --- Tableau ---
+function renderTable(){
+    const tbody = document.getElementById("table-body");
+    if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>'; return;}
+    tbody.innerHTML = dataList.map((it,i)=>`
+        <tr class="${selectedIndex===i?'selected':''}">
+            <td>${i+1}</td><td>${it.date}</td>
+            <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
+            <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
+            <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
+            <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
+            <td>${it.photo ? `<img src="${it.photo}" onclick="openPhoto('${it.photo}')">` : '—'}</td>
+            <td>
+                <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
+                <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
+            </td>
+        </tr>`).join("");
+}
+function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description"; saveData();}
+function updateRef(i,text){dataList[i].ref=text.trim().toUpperCase()||"SANS REFERENCE"; saveData();}
+function editRow(e,i){
+    e.stopPropagation();
+    const it=dataList[i];
+    const f=document.formulaire;
+    f.fob.value=it.fob; f.pcb.value=it.pcb; f.cbm.value=it.cbm;
+    f.maritime.value=it.maritime; f.tracking.value=it.tracking; f.douane.value=it.douane;
+    document.getElementById("refInput").value=it.ref;
+    document.getElementById("descInput").value=it.description;
+    selectedIndex=i;
+    document.getElementById("addBtn").value="💾 Mettre à jour";
+    document.getElementById("infoBox").style.display="block";
+    renderTable();
+}
+function deleteRow(e,i){ e.stopPropagation(); if(confirm("Supprimer cette ligne ?")){ dataList.splice(i,1); selectedIndex=null; document.getElementById("addBtn").value="➕ Ajouter"; saveData(); renderTable(); } }
+function resetForm(){
+    const f=document.formulaire;
+    f.reset();
+    document.getElementById("result").innerHTML="";
+    document.getElementById("refInput").value="";
+    document.getElementById("descInput").value="";
+    document.getElementById("photoInput").value="";
+    delete document.getElementById("photoInput").dataset.base64;
+    selectedIndex=null;
+    document.getElementById("addBtn").value="➕ Ajouter";
+}
+
+// --- Export XLSX + fallback CSV ---
+function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;}
+async function exportXLSXOrCSV(){
+    if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
+    if(isIOS()){alert("XLSX non supporté sur iOS. Export CSV utilisé."); return exportCSV();}
+    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo"]];
+    for(let i=0;i<dataList.length;i++){
+        const it=dataList[i]; let photoCell="";
+        if(it.photo){
+            const img=new Image(); img.src=it.photo;
+            await new Promise(res=>{img.onload=res;});
+            const canvas=document.createElement("canvas"); const size=50; canvas.width=size; canvas.height=size;
+            const ctx=canvas.getContext("2d"); const scale=Math.min(size/img.width,size/img.height); ctx.drawImage(img,(size-img.width*scale)/2,(size-img.height*scale)/2,img.width*scale,img.height*scale);
+            photoCell=canvas.toDataURL("image/png");
+        }
+        wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),photoCell]);
+    }
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws["!cols"] = wsData[0].map((_,i)=>(i===12?{wpx:60}:{wpx:80}));
+    XLSX.utils.book_append_sheet(wb,ws,"Simulations");
+    XLSX.writeFile(wb,"Simulations_TradeMaa.xlsx");
+}
+
+// --- Export CSV fallback ---
+function exportCSV(){
+    if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
+    const headers=["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo"];
+    const rows = dataList.map((it,i)=>[i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),it.photo||""]);
+    const csv = [headers.join(";"),...rows.map(r=>r.map(x=>`"${x}"`).join(";"))].join("\n");
+    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"}); const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="Simulations_TradeMaa.csv"; a.click(); URL.revokeObjectURL(url);
+}
+
+// --- Photo preview ---
+function openPhoto(src){window.open(src,'_blank');}
+function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData"); dataList=[]; renderTable();}}
+</script>
 </body>
 </html>
