@@ -27,7 +27,7 @@
             <input type="button" value="📊 Calculer" onclick="calc(true)">
             <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox(true)">
             <input type="button" value="🧹 Vider" onclick="resetForm(); toggleInfoBox(false);">
-            <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV()">
+            <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV2()">
         </div>
 
         <div id="infoBox" class="hidden-box">
@@ -181,6 +181,34 @@ function resetForm(){
 }
 
 // --- Export XLSX + fallback CSV ---
+    async function exportXLSXOrCSV2() {
+  if (dataList.length === 0) {
+    alert("Aucune donnée à exporter.");
+    return;
+  }
+
+  try {
+    const resp = await fetch("https://backend-k01c.onrender.com/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: dataList })
+    });
+
+    if (!resp.ok) throw new Error(await resp.text());
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Simulations_TradeMaa.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error(err);
+    alert("Erreur d’export : " + err.message);
+  }
+}
+
 // Utilitaire : charge la lib XLSX à la volée si nécessaire
 function ensureXLSX() {
   if (typeof XLSX !== 'undefined') return Promise.resolve(true);
