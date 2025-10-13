@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trade Maa">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Calcule Trade Maa</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+
+</head>
+<body>
+<div class="container">
+    <div class="text">Calcule Trade Maa</div>
+    <form name="formulaire" onsubmit="return false;">
+        <div class="form-row">
+            <div class="input-data"><label>FOB ($)</label><input type="number" name="fob" step="0.01" required></div>
+            <div class="input-data"><label>PCB</label><input type="number" name="pcb" required></div>
+            <div class="input-data"><label>CBM</label><input type="number" name="cbm" step="0.00001" required></div>
+        </div>
+        <div class="form-row">
+            <div class="input-data"><label>Maritime (€)</label><input type="number" name="maritime" value="2500" required></div>
+            <div class="input-data"><label>Tracking (€)</label><input type="number" name="tracking" value="1400" required></div>
+            <div class="input-data"><label>Douane (%)</label><input type="number" name="douane" value="6.5" step="0.01" required></div>
+        </div>
+
+        <div class="submit-btns">
+            <input type="button" value="📊 Calculer" onclick="calc(true)">
+            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox(true)">
+            <input type="button" value="🧹 Vider" onclick="resetForm(); toggleInfoBox(false);">
+            <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV()">
+        </div>
+
+        <div id="infoBox" class="hidden-box">
+            <div class="input-data"><label>Référence</label>
+                <input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
+            <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
+            <div class="input-data"><label>Photo (caméra ou fichier)</label>
+                <input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
+            <input type="button" style="margin-top:4px;padding:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
+        </div>
+    </form>
+
+    <div id="result" class="results"></div>
+
+    <div class="table-zone">
+        <button class="clear-btn" onclick="clearStorage()">🗑️ Effacer les données sauvegardées</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th><th>Réf.</th><th>Description</th>
+                    <th>FOB</th><th>PCB</th><th>CBM</th><th>Prix 2025</th><th>Prix vente</th><th>Photo</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"><tr><td colspan="11">Aucune simulation.</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let dataList=[], selectedIndex=null;
+
+window.onload = function(){
+    const saved = localStorage.getItem("tradeMaaData");
+    if(saved){dataList = JSON.parse(saved);}
+    renderTable();
+};
+
+function saveData(){localStorage.setItem("tradeMaaData", JSON.stringify(dataList));}
+
+// --- Calcul ---
+function calc(show=false){
+    const f = document.formulaire;
+    const pcb = parseFloat(f.pcb.value);
+    const cbm = parseFloat(f.cbm.value);
+    const fob = parseFloat(f.fob.value);
+    const maritime = parseFloat(f.maritime.value);
+    const douane = parseFloat(f.douane.value)/100;
+    const tracking = parseFloat(f.tracking.value);
+    if([pcb,cbm,fob,maritime,douane,tracking].some(isNaN)){alert("Champs invalides");return false;}
+    let pr=((56/cbm)*pcb*fob)+maritime;
+    pr=pr*(1+douane)+tracking;
+    pr/=((56/cbm)*pcb);
+    const mcmp=pr/0.88, log=pr*0.15, pv=log+mcmp, rfa=pv*0.06, pvrfa=pv+rfa;
+    const pnew = (pvrfa/1).toFixed(2);
+    const pvp = Math.ceil((pvrfa*2)*2)/2-0.01;
+    if(show){
+        document.getElementById("result").innerHTML = `
+            <hr><strong>💶 Prix 2025 : ${pnew} €</strong><br>
+            ${pr.toFixed(3)} : P.Brute | ${mcmp.toFixed(3)} : CMP | ${log.toFixed(3)} : Log +15%<br>
+            ${rfa.toFixed(3)} : RFA | ${pv.toFixed(3)} : P.sans RFA<br>
+            <strong>🏷️ Prix vente (x2) : ${pvp.toFixed(2)} €</strong><hr>`;
+    }
+    return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
+}
+
+function toggleInfoBox(show = true){ 
+    const box=document.getElementById("infoBox");
+    box.style.display=(show)?"block":"none";
+}
+
+// --- Ajouter / éditer ligne ---
+function ajouter(){
+    const result = calc(true);
+    if(!result) return;
+    const ref = (document.getElementById("refInput").value || "SANS REFERENCE").toUpperCase();
+    const desc = document.getElementById("descInput").value || "Sans description";
+    const photo = document.getElementById("photoInput").dataset.base64 || "";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString()+" "+now.toLocaleTimeString();
+    const f = document.formulaire;
+    const entry = {ref, description:desc, date:dateStr, photo,
+        fob:f.fob.value, pcb:f.pcb.value, cbm:f.cbm.value,
+        maritime:f.maritime.value, tracking:f.tracking.value, douane:f.douane.value,
+        ...result};
+    if(selectedIndex !== null){
+        dataList[selectedIndex] = entry;
+        selectedIndex = null;
+        document.getElementById("addBtn").value="➕ Ajouter";
+    } else { dataList.push(entry); }
+    saveData();
+    renderTable();
+    resetForm();
+}
+
+// --- Photo upload ---
+function handlePhotoUpload(event){
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        event.target.dataset.base64 = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// --- Tableau ---
+function renderTable(){
+    const tbody = document.getElementById("table-body");
+    if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>'; return;}
+    tbody.innerHTML = dataList.map((it,i)=>`
+        <tr class="${selectedIndex===i?'selected':''}">
+            <td>${i+1}</td>
+            <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
+            <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
+            <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
+            <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
+            <td>${it.photo ? `<img src="${it.photo}" onclick="openPhoto('${it.photo}')">` : '—'}</td>
+            <td>
+                <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
+                <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
+            </td>
+        </tr>`).join("");
+}
+function updateDescription(i,text){dataList[i].description=text.trim()||"Sans description"; saveData();}
+function updateRef(i,text){dataList[i].ref=text.trim().toUpperCase()||"SANS REFERENCE"; saveData();}
+function editRow(e,i){
+    e.stopPropagation();
+    const it=dataList[i];
+    const f=document.formulaire;
+    f.fob.value=it.fob; f.pcb.value=it.pcb; f.cbm.value=it.cbm;
+    f.maritime.value=it.maritime; f.tracking.value=it.tracking; f.douane.value=it.douane;
+    document.getElementById("refInput").value=it.ref;
+    document.getElementById("descInput").value=it.description;
+    selectedIndex=i;
+    document.getElementById("addBtn").value="💾 Mettre à jour";
+    document.getElementById("infoBox").style.display="block";
+    renderTable();
+}
+function deleteRow(e,i){ e.stopPropagation(); if(confirm("Supprimer cette ligne ?")){ dataList.splice(i,1); selectedIndex=null; document.getElementById("addBtn").value="➕ Ajouter"; saveData(); renderTable(); } }
+function resetForm(){
+    const f=document.formulaire;
+    f.reset();
+    document.getElementById("result").innerHTML="";
+    document.getElementById("refInput").value="";
+    document.getElementById("descInput").value="";
+    document.getElementById("photoInput").value="";
+    delete document.getElementById("photoInput").dataset.base64;
+    selectedIndex=null;
+    document.getElementById("addBtn").value="➕ Ajouter";
+}
+
+// --- Export XLSX + fallback CSV ---
+    async function exportXLSXOrCSV() {
+  if (dataList.length === 0) {
+    alert("Aucune donnée à exporter.");
+    return;
+  }
+
+  try {
+    const resp = await fetch("https://backend-k01c.onrender.com/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: dataList })
+    });
+
+    if (!resp.ok) throw new Error(await resp.text());
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Simulations_TradeMaa.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error(err);
+    alert("Erreur d’export : " + err.message);
+  }
+}
+
+
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(() => console.log("Service Worker enregistré ✅"))
+    .catch(err => console.log("SW erreur :", err));
+}
+// --- Photo preview ---
+function openPhoto(src){window.open(src,'_blank');}
+function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData"); dataList=[]; renderTable();}}
+
+</script>
+   
+
+</body>
+</html>
