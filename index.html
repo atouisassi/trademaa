@@ -25,8 +25,8 @@
 
         <div class="submit-btns">
             <input type="button" value="📊 Calculer" onclick="calc(true)">
-            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox()">
-            <input type="button" value="🧹 Vider" onclick="resetForm()">
+            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox(true)">
+            <input type="button" value="🧹 Vider" onclick="resetForm(); toggleInfoBox(false);">
             <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV()">
         </div>
 
@@ -36,7 +36,7 @@
             <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
             <div class="input-data"><label>Photo (caméra ou fichier)</label>
                 <input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
-            <input type="button" style="margin-top:8px" value="💾 Enregistrer la ligne" onclick="ajouter()">
+            <input type="button" style="margin-top:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
         </div>
     </form>
 
@@ -94,9 +94,9 @@ function calc(show=false){
     return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
 }
 
-function toggleInfoBox(){ 
+function toggleInfoBox(show = true){ 
     const box=document.getElementById("infoBox");
-    box.style.display=(box.style.display==="none"||!box.style.display)?"block":"none";
+    box.style.display=(show)?"block":"none";
 }
 
 // --- Ajouter / éditer ligne ---
