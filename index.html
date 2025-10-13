@@ -41,14 +41,13 @@
             <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
             <div class="input-data"><label>Photo (caméra ou fichier)</label>
                 <input id="photoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)"></div>
-            <input type="button" style="margin-top:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
+            <input type="button" style="margin-top:4px;padding:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
         </div>
     </form>
 
     <div id="result" class="results"></div>
 
     <div class="table-zone">
-        <h3 style="text-align:center;margin-top:15px;">📋 Tableau </h3>
         <button class="clear-btn" onclick="clearStorage()">🗑️ Effacer les données sauvegardées</button>
         <table>
             <thead>
