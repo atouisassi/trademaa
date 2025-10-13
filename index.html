@@ -164,7 +164,7 @@ function renderTable(){
     if(dataList.length===0){tbody.innerHTML='<tr><td colspan="11">Aucune simulation.</td></tr>'; return;}
     tbody.innerHTML = dataList.map((it,i)=>`
         <tr class="${selectedIndex===i?'selected':''}">
-            <td>${i+1}</td><td>${it.date}</td>
+            <td>${i+1}</td>
             <td class="editable" contenteditable onblur="updateRef(${i},this.innerText)">${it.ref}</td>
             <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
             <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
@@ -209,7 +209,7 @@ function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.
 async function exportXLSXOrCSV(){
     if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
     if(isIOS()){alert("XLSX non supporté sur iOS. Export CSV utilisé."); return exportCSV();}
-    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo"]];
+    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP 12%","logistique +15%","Rfa","Prix trade","Prix Vente public","Photo"]];
     for(let i=0;i<dataList.length;i++){
         const it=dataList[i]; let photoCell="";
         if(it.photo){
@@ -219,7 +219,9 @@ async function exportXLSXOrCSV(){
             const ctx=canvas.getContext("2d"); const scale=Math.min(size/img.width,size/img.height); ctx.drawImage(img,(size-img.width*scale)/2,(size-img.height*scale)/2,img.width*scale,img.height*scale);
             photoCell=canvas.toDataURL("image/png");
         }
-        wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),photoCell]);
+                                                                                                        //{pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
+        wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pr.toFixed(3),
+                     ...it.mcmp.toFixed(3),it.log.toFixed(3),it.rfa.toFixed(3), it.pnew,it.pvp.toFixed(2),photoCell]);
     }
     const wb=XLSX.utils.book_new();
     const ws=XLSX.utils.aoa_to_sheet(wsData);
@@ -231,8 +233,9 @@ async function exportXLSXOrCSV(){
 // --- Export CSV fallback ---
 function exportCSV(){
     if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
-    const headers=["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","Prix 2025","Prix Vente","Photo"];
-    const rows = dataList.map((it,i)=>[i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pnew,it.pvp.toFixed(2),it.photo||""]);
+    const headers=["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP 12%","logistique +15%","Rfa","Prix trade","Prix Vente public","Photo"];
+    const rows = dataList.map((it,i)=>[i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pr.toFixed(3),
+                     ...it.mcmp.toFixed(3),it.log.toFixed(3),it.rfa.toFixed(3), it.pnew,it.pvp.toFixed(2),it.photo||""]);
     const csv = [headers.join(";"),...rows.map(r=>r.map(x=>`"${x}"`).join(";"))].join("\n");
     const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"}); const url=URL.createObjectURL(blob);
     const a=document.createElement("a"); a.href=url; a.download="Simulations_TradeMaa.csv"; a.click(); URL.revokeObjectURL(url);
