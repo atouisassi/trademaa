@@ -209,37 +209,65 @@ function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.
 async function exportXLSXOrCSV(){
     if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
     if(isIOS()){alert("XLSX non supporté sur iOS. Export CSV utilisé."); return exportCSV();}
-    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP 12%","logistique +15%","Rfa","Prix trade","Prix Vente public","Photo"]];
+
+    const wsData = [["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP","Log +15%","PV","RFA","Prix trade","Prix Vente","Photo"]];
+
     for(let i=0;i<dataList.length;i++){
-        const it=dataList[i]; let photoCell="";
+        const it = dataList[i];
+        let photoCell = "";
         if(it.photo){
-            const img=new Image(); img.src=it.photo;
+            const img = new Image(); img.src = it.photo;
             await new Promise(res=>{img.onload=res;});
-            const canvas=document.createElement("canvas"); const size=50; canvas.width=size; canvas.height=size;
-            const ctx=canvas.getContext("2d"); const scale=Math.min(size/img.width,size/img.height); ctx.drawImage(img,(size-img.width*scale)/2,(size-img.height*scale)/2,img.width*scale,img.height*scale);
-            photoCell=canvas.toDataURL("image/png");
+            const canvas = document.createElement("canvas"); 
+            const size = 50; canvas.width=size; canvas.height=size;
+            const ctx = canvas.getContext("2d"); 
+            const scale = Math.min(size/img.width, size/img.height);
+            ctx.drawImage(img,(size-img.width*scale)/2,(size-img.height*scale)/2,img.width*scale,img.height*scale);
+            photoCell = canvas.toDataURL("image/png");
         }
-                                                                                                        //{pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
-        wsData.push([i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pr.toFixed(3),
-                     ...it.mcmp.toFixed(3),it.log.toFixed(3),it.rfa.toFixed(3), it.pnew,it.pvp.toFixed(2),photoCell]);
+
+        wsData.push([
+            i+1, it.date, it.ref, it.description, it.fob, it.pcb, it.cbm,
+            it.maritime, it.tracking, it.douane,
+            it.pr.toFixed(3),
+            it.mcmp.toFixed(3),
+            it.log.toFixed(3),
+            it.pv.toFixed(3),
+            it.rfa.toFixed(3),
+            it.pvrfa.toFixed(3),
+            it.pvp.toFixed(2),
+            photoCell
+        ]);
     }
-    const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.aoa_to_sheet(wsData);
-    ws["!cols"] = wsData[0].map((_,i)=>(i===12?{wpx:60}:{wpx:80}));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws["!cols"] = wsData[0].map((_,i)=>(i===17 ? {wpx:60} : {wpx:80}));
     XLSX.utils.book_append_sheet(wb,ws,"Simulations");
     XLSX.writeFile(wb,"Simulations_TradeMaa.xlsx");
 }
 
-// --- Export CSV fallback ---
 function exportCSV(){
     if(dataList.length===0){alert("Aucune donnée à exporter."); return;}
-    const headers=["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP 12%","logistique +15%","Rfa","Prix trade","Prix Vente public","Photo"];
-    const rows = dataList.map((it,i)=>[i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,it.maritime,it.tracking,it.douane,it.pr.toFixed(3),
-                     ...it.mcmp.toFixed(3),it.log.toFixed(3),it.rfa.toFixed(3), it.pnew,it.pvp.toFixed(2),it.photo||""]);
+    const headers=["#","Date","Réf.","Description","FOB","PCB","CBM","Maritime","Tracking","Douane","P.brut","Marge CMP","Log +15%","PV","RFA","Prix trade","Prix Vente","Photo"];
+    const rows = dataList.map((it,i)=>[
+        i+1,it.date,it.ref,it.description,it.fob,it.pcb,it.cbm,
+        it.maritime,it.tracking,it.douane,
+        it.pr.toFixed(3),
+        it.mcmp.toFixed(3),
+        it.log.toFixed(3),
+        it.pv.toFixed(3),
+        it.rfa.toFixed(3),
+        it.pvrfa.toFixed(3),
+        it.pvp.toFixed(2),
+        it.photo||""
+    ]);
     const csv = [headers.join(";"),...rows.map(r=>r.map(x=>`"${x}"`).join(";"))].join("\n");
-    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"}); const url=URL.createObjectURL(blob);
-    const a=document.createElement("a"); a.href=url; a.download="Simulations_TradeMaa.csv"; a.click(); URL.revokeObjectURL(url);
+    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="Simulations_TradeMaa.csv"; a.click(); URL.revokeObjectURL(url);
 }
+
 
 // --- Photo preview ---
 function openPhoto(src){window.open(src,'_blank');}
