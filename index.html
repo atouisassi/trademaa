@@ -287,7 +287,27 @@ async function exportXLSXOrCSV() {
     // Ajuste largeur colonnes (ajuste index de photo à la fin)
     ws['!cols'] = wsData[0].map((_, idx) => (idx === wsData[0].length-1 ? { wpx: 70 } : { wpx: 90 }));
     XLSX.utils.book_append_sheet(wb, ws, "Simulations");
-
+    // Crée un tableau d'images
+        const images = [];
+        for (let i = 1; i < wsData.length; i++) { // sauter l'entête
+          const imgBase64 = wsData[i][wsData[0].length - 1];
+          if (imgBase64) {
+            images.push({
+              name: `photo_${i}.png`,
+              data: imgBase64.split(',')[1], // retire le "data:image/png;base64,"
+              extension: ".png",
+              position: {
+                type: "twoCellAnchor",
+                attrs: { editAs: "oneCell" },
+                from: { col: wsData[0].length - 1, row: i, colOff: 0, rowOff: 0 },
+                to: { col: wsData[0].length, row: i + 1 }
+              }
+            });
+          }
+    }
+    
+    // Attache les images à la feuille
+    if (images.length) ws["!images"] = images;
     // Télécharger fichier
     XLSX.writeFile(wb, "Simulations_TradeMaa.xlsx");
   } catch (err) {
