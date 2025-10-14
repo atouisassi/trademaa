@@ -1,3 +1,4 @@
+
 let dataList=[], selectedIndex=null;
 // --- Gestion IndexedDB ---
 const DB_NAME = "TradeMaaDB";
@@ -294,7 +295,7 @@ async function exportXLSXOrCSV() {
     const roundedData = dataList.map(it => ({
         ...it,
         fob: parseFloat(it.fob).toFixed(3),
-        pcb: parseFloat(it.pcb).toFixed(3),
+        pcb: parseFloat(it.pcb).toFixed(0),
         cbm: parseFloat(it.cbm).toFixed(5), // CBM avec 5 décimales pour précision
         pr: parseFloat(it.pr).toFixed(3),
         mcmp: parseFloat(it.mcmp).toFixed(3),
@@ -302,11 +303,11 @@ async function exportXLSXOrCSV() {
         pv: parseFloat(it.pv).toFixed(3),
         rfa: parseFloat(it.rfa).toFixed(3),
         pvrfa: parseFloat(it.pvrfa).toFixed(3),
-        pnew: parseFloat(it.pnew).toFixed(3),
-        pvp: parseFloat(it.pvp).toFixed(3),
-        maritime: parseFloat(it.maritime).toFixed(3),
-        tracking: parseFloat(it.tracking).toFixed(3),
-        douane: parseFloat(it.douane).toFixed(3),
+        pnew: parseFloat(it.pnew).toFixed(2),
+        pvp: parseFloat(it.pvp).toFixed(2),
+        maritime: parseFloat(it.maritime).toFixed(2),
+        tracking: parseFloat(it.tracking).toFixed(2),
+        douane: parseFloat(it.douane).toFixed(2),
         date: it.date || ""
     }));
     try { 
@@ -333,8 +334,8 @@ async function exportXLSXOrCSV() {
             // --- CSV local complet ---
             const csvHeader = [
                 "Référence", "Description", "FOB", "PCB", "CBM",
-                "Prix_brute", "M/CMP", "Log +15%", "Prix_sans_RFA",
-                "RFA", "Prix_2025", "Prix_vente",
+                "Prix_brute", "Marger CMP", "Logistique +15%", "P.sans RFA",
+                "RFA", "Prix 2025", "P.vente Public",
                 "Maritime", "Tracking", "Douane", "Date", "Photo"
             ];
 
@@ -342,18 +343,18 @@ async function exportXLSXOrCSV() {
                 `"${it.ref}"`,
                 `"${it.description.replace(/"/g, '""')}"`,
                 Number(it.fob).toFixed(3),
-                it.pcb,                    // PCB laissé tel quel
-                it.cbm,                    // CBM laissé tel quel
+                Number(it.pcb),                    // PCB laissé tel quel
+                Number(it.cbm).toFixed(5),                    // CBM laissé tel quel
                 Number(it.pr).toFixed(3),
                 Number(it.mcmp).toFixed(3),
                 Number(it.log).toFixed(3),
                 Number(it.pv).toFixed(3),
                 Number(it.rfa).toFixed(3),
-                Number(it.pnew).toFixed(3),
-                Number(it.pvp).toFixed(3),
-                Number(it.maritime).toFixed(3),
-                Number(it.tracking).toFixed(3),
-                Number(it.douane).toFixed(3),
+                Number(it.pnew).toFixed(2),
+                Number(it.pvp).toFixed(2),
+                Number(it.maritime).toFixed(2),
+                Number(it.tracking).toFixed(2),
+                Number(it.douane).toFixed(2),
                 `"${it.date || ''}"`,
                 it.photo ? `"${it.photo}"` : ""
             ].join(","));
