@@ -18,14 +18,14 @@
     <div class="text">Calcule Trade Maa</div>
     <form name="formulaire" onsubmit="return false;">
         <div class="form-row">
-            <div class="input-data"><label>FOB ($)</label><input type="number" name="fob" step="0.01" required></div>
-            <div class="input-data"><label>PCB</label><input type="number" name="pcb" required></div>
-            <div class="input-data"><label>CBM</label><input type="number" name="cbm" step="0.00001" required></div>
+            <div class="input-data"><label>FOB ($)</label><input type="number" max ="10000" name="fob" step="0.01" required></div>
+            <div class="input-data"><label>PCB</label><input type="number" max="5000" name="pcb" required></div>
+            <div class="input-data"><label>CBM</label><input type="number" max="20" name="cbm" step="0.00001" required></div>
         </div>
         <div class="form-row">
             <div class="input-data"><label>Maritime (€)</label><input type="number" name="maritime" value="2500" required></div>
             <div class="input-data"><label>Tracking (€)</label><input type="number" name="tracking" value="1400" required></div>
-            <div class="input-data"><label>Douane (%)</label><input type="number" name="douane" value="6.5" step="0.01" required></div>
+            <div class="input-data"><label>Douane (%)</label><input type="number" max="100" name="douane" value="6.5" step="0.01" required></div>
         </div>
 
         <div class="submit-btns">
@@ -63,14 +63,66 @@
 
 <script>
 let dataList=[], selectedIndex=null;
+// --- Gestion IndexedDB ---
+const DB_NAME = "TradeMaaDB";
+const DB_VERSION = 1;
+const STORE_NAME = "simulations";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      }
+    };
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+async function saveAllToDB(dataArray) {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const store = tx.objectStore(STORE_NAME);
+  store.clear();
+  dataArray.forEach((item) => store.add(item));
+  return tx.complete;
+}
+
+async function loadAllFromDB() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
 
 window.onload = function(){
+    try {
+    dataList = await loadAllFromDB();
+    console.log("📂 Données chargées depuis IndexedDB :", dataList.length);
+  } catch (err) {
+    console.warn("⚠️ Échec IndexedDB, fallback localStorage :", err);
     const saved = localStorage.getItem("tradeMaaData");
-    if(saved){dataList = JSON.parse(saved);}
-    renderTable();
+    if (saved) dataList = JSON.parse(saved);
+  }
+  renderTable();
 };
 
-function saveData(){localStorage.setItem("tradeMaaData", JSON.stringify(dataList));}
+async function saveData() {
+  try {
+    await saveAllToDB(dataList);
+    console.log("✅ Données sauvegardées dans IndexedDB");
+  } catch (err) {
+    console.error("Erreur de sauvegarde IndexedDB :", err);
+    alert("❌ Impossible de sauvegarder les données !");
+  }
+}
 
 // --- Calcul ---
 function calc(show=false){
@@ -88,6 +140,16 @@ function calc(show=false){
     const mcmp=pr/0.88, log=pr*0.15, pv=log+mcmp, rfa=pv*0.06, pvrfa=pv+rfa;
     const pnew = (pvrfa/1).toFixed(2);
     const pvp = Math.ceil((pvrfa*2)*2)/2-0.01;
+    const result = {
+            pr: +pr.toFixed(2),
+            mcmp: +mcmp.toFixed(2),
+            log: +log.toFixed(2),
+            pv: +pv.toFixed(2),
+            rfa: +rfa.toFixed(2),
+            pvrfa: +pvrfa.toFixed(2),
+            pnew: +parseFloat(pnew),
+            pvp: +pvp.toFixed(2)
+          };
     if(show){
         document.getElementById("result").innerHTML = `
             <hr><strong>💶 Prix 2025 : ${pnew} €</strong><br>
@@ -109,7 +171,13 @@ function ajouter(){
     if(!result) return;
     const ref = (document.getElementById("refInput").value || "SANS REFERENCE").toUpperCase();
     const desc = document.getElementById("descInput").value || "Sans description";
-    const photo = document.getElementById("photoInput").dataset.base64 || "";
+    let photo = document.getElementById("photoInput").dataset.base64;
+
+    // Si aucune nouvelle photo n'est sélectionnée et qu'on modifie une ligne existante,
+    // on garde l'ancienne photo
+    if (!photo && selectedIndex !== null && dataList[selectedIndex].photo) {
+      photo = dataList[selectedIndex].photo;
+    }
     const now = new Date();
     const dateStr = now.toLocaleDateString()+" "+now.toLocaleTimeString();
     const f = document.formulaire;
@@ -169,7 +237,7 @@ function handlePhotoUpload(event){
    const file = event.target.files[0];
     if (!file) return;
 
-    resizeImage(file, 800, 800, function(resizedDataUrl) {
+    resizeImage(file, 700, 700, function(resizedDataUrl) {
         // Stocke la version redimensionnée
         event.target.dataset.base64 = resizedDataUrl;
 
@@ -196,7 +264,7 @@ function renderTable(){
                 <td class="editable" contenteditable onblur="updateDescription(${i},this.innerText)">${it.description}</td>
                 <td>${it.fob}</td><td>${it.pcb}</td><td>${it.cbm}</td>
                 <td>${it.pnew} €</td><td>${it.pvp.toFixed(2)} €</td>
-                <td>${photoSrc ? `<img src="${photoSrc}" onclick="openPhoto('${photoSrc}')">` : '—'}</td>
+                <td>${photoSrc ? `<img src="${it.photo}" style="cursor:zoom-in;" onclick="openPhoto('${it.photo}')">` : '—'}</td>
                 <td>
                     <button class="action-btn" onclick="editRow(event,${i})">✏️</button>
                     <button class="action-btn" onclick="deleteRow(event,${i})">🗑️</button>
@@ -217,6 +285,9 @@ function editRow(e,i){
     selectedIndex=i;
     document.getElementById("addBtn").value="💾 Mettre à jour";
     document.getElementById("infoBox").style.display="block";
+    if (it.photo) {
+      document.getElementById("photoInput").dataset.base64 = it.photo;
+    }
     renderTable();
 }
 function deleteRow(e,i){ e.stopPropagation(); if(confirm("Supprimer cette ligne ?")){ dataList.splice(i,1); selectedIndex=null; document.getElementById("addBtn").value="➕ Ajouter"; saveData(); renderTable(); } }
@@ -233,13 +304,14 @@ function resetForm(){
 }
 
 // --- Export XLSX + fallback CSV ---
-    async function exportXLSXOrCSV() {
+async function exportXLSXOrCSV() {
   if (dataList.length === 0) {
     alert("Aucune donnée à exporter.");
     return;
   }
 
   try {
+    // ✅ Tentative d'export XLSX via ton serveur
     const resp = await fetch("https://backend-k01c.onrender.com/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -247,6 +319,7 @@ function resetForm(){
     });
 
     if (!resp.ok) throw new Error(await resp.text());
+
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -254,13 +327,42 @@ function resetForm(){
     a.download = "Simulations_TradeMaa.xlsx";
     a.click();
     URL.revokeObjectURL(url);
-
   } catch (err) {
-    console.error(err);
-    alert("Erreur d’export : " + err.message);
+    console.warn("⚠️ Export XLSX échoué :", err.message);
+    alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local...");
+
+    try {
+      // --- 🔄 Fallback : génération d’un CSV local ---
+      const csvHeader = [
+        "Référence", "Description", "FOB", "PCB", "CBM",
+        "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"
+      ];
+
+      const csvRows = dataList.map(it => [
+        `"${it.ref}"`,
+        `"${it.description.replace(/"/g, '""')}"`,
+        it.fob, it.pcb, it.cbm,
+        it.pnew, it.pvp,
+        it.maritime, it.tracking, it.douane,
+        `"${it.date || ''}"`
+      ].join(","));
+
+      const csvContent = [csvHeader.join(","), ...csvRows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Simulations_TradeMaa.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      alert("✅ Fichier CSV généré avec succès !");
+    } catch (csvErr) {
+      console.error("Erreur lors de la génération du CSV :", csvErr);
+      alert("Erreur lors de la génération du CSV local : " + csvErr.message);
+    }
   }
 }
-
 
 
 if ("serviceWorker" in navigator) {
@@ -269,11 +371,73 @@ if ("serviceWorker" in navigator) {
     .catch(err => console.log("SW erreur :", err));
 }
 // --- Photo preview ---
-function openPhoto(src){window.open(src,'_blank');}
-function clearStorage(){if(confirm("Effacer toutes les données sauvegardées ?")){localStorage.removeItem("tradeMaaData"); dataList=[]; renderTable();}}
+ffunction openPhoto(src) {
+  const overlay = document.getElementById("photoPreview");
+  const img = document.getElementById("previewImg");
+  const closeBtn = document.getElementById("closePreview");
+  const zoomHint = document.getElementById("zoomHint");
 
+  img.src = src;
+  overlay.style.display = "flex";
+  let zoomed = false;
+
+  // Fermer la fenêtre
+  closeBtn.onclick = () => overlay.style.display = "none";
+
+  // Zoom / dézoom au toucher
+  img.onclick = () => {
+    zoomed = !zoomed;
+    img.style.transform = zoomed ? "scale(1.8)" : "scale(1)";
+  };
+
+  // Fermer si on clique à l’extérieur de l’image
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.style.display = "none";
+  };
+}
+
+async function clearStorage() {
+  if (confirm("Effacer toutes les données sauvegardées ?")) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).clear();
+    dataList = [];
+    renderTable();
+    console.log("🧹 IndexedDB vidé !");
+  }
+}
 </script>
    
+
+<!-- Fenêtre d'aperçu photo -->
+<div id="photoPreview" style="
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter: blur(6px);
+  justify-content:center; align-items:center;
+  flex-direction:column;
+  z-index:9999;
+">
+  <button id="closePreview" style="
+    position:absolute; top:20px; right:20px;
+    background:rgba(255,255,255,0.2);
+    border:none; color:white; font-size:24px;
+    border-radius:50%; width:40px; height:40px;
+    cursor:pointer;
+  ">✕</button>
+  
+  <img id="previewImg" src="" alt="Aperçu" style="
+    max-width:90%; max-height:80%;
+    border-radius:12px;
+    box-shadow:0 0 20px rgba(255,255,255,0.2);
+    transition:transform 0.3s ease;
+  ">
+  <div id="zoomHint" style="color:#fff; font-size:14px; margin-top:10px; opacity:0.7;">
+    🔍 Touchez pour zoomer / dézoomer
+  </div>
+</div>
+
 
 </body>
 </html>
