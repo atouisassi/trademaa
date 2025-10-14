@@ -39,13 +39,7 @@
                 <input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
             <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
             <div class="input-data"><label>Photo (caméra ou fichier)</label>
-               
-            <button type="button" onclick="document.getElementById('photoInputCamera').click()">📷 Prendre une photo</button>
-            <button type="button" onclick="document.getElementById('photoInputGallery').click()">🖼️ Choisir dans la galerie</button>
-
-            <input id="photoInputCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(event)">
-            <input id="photoInputGallery" type="file" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
-            </div>
+                <input id="photoInput" type="file" accept="image/*" onchange="handlePhotoUpload(event)"></div>
             <input type="button" style="margin-top:4px;padding:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
         </div>
     </form>
