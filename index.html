@@ -206,7 +206,63 @@ function toggleInfoBox(show = true){
     const box=document.getElementById("infoBox");
     box.style.display=(show)?"block":"none";
 }
+////////
+    // --- Met à jour la miniature ---
+function updatePhotoThumbnail(base64) {
+    let thumb = document.getElementById("photoThumbnail");
+    const photoInput = document.getElementById("photoInput");
 
+    if (!base64) {
+        // Supprime la miniature si pas de photo
+        if (thumb) thumb.remove();
+        return;
+    }
+
+    if (!thumb) {
+        // Crée la miniature si elle n'existe pas
+        thumb = document.createElement('img');
+        thumb.id = "photoThumbnail";
+        thumb.style.width = "60px";
+        thumb.style.height = "60px";
+        thumb.style.objectFit = "cover";
+        thumb.style.border = "1px solid #ccc";
+        thumb.style.borderRadius = "4px";
+        thumb.style.marginLeft = "10px";
+        thumb.style.verticalAlign = "middle";
+        photoInput.parentNode.appendChild(thumb);
+    }
+
+    thumb.src = base64;
+}
+
+// --- Photo upload ---
+function handlePhotoUpload(event){
+   const file = event.target.files[0];
+    if (!file) {
+        updatePhotoThumbnail(null); // supprime miniature si input vidé
+        delete event.target.dataset.base64;
+        delete event.target.dataset.url;
+        return;
+    }
+
+    resizeImage(file, 700, 700, function(resizedDataUrl) {
+        // Stocke la version redimensionnée
+        event.target.dataset.base64 = resizedDataUrl;
+
+        // Crée un URL temporaire pour l'affichage dans le tableau (Safari friendly)
+        const blob = dataURItoBlob(resizedDataUrl);
+        const url = URL.createObjectURL(blob);
+        event.target.dataset.url = url;
+
+        // Met à jour la miniature
+        updatePhotoThumbnail(resizedDataUrl);
+
+        // Rafraîchir le tableau si tu veux afficher l'image immédiatement
+        renderTable();
+    });
+}
+
+    /////
 // --- Ajouter / éditer ligne ---
 function ajouter(){
     const result = calc(true);
@@ -275,7 +331,7 @@ function dataURItoBlob(dataURI) {
     return new Blob([ab], { type: mimeString });
 }
 // --- Photo upload ---
-function handlePhotoUpload(event){
+function handlePhotoUpload2(event){
    const file = event.target.files[0];
     if (!file) return;
 
@@ -328,7 +384,10 @@ function editRow(e,i){
     document.getElementById("addBtn").value="💾 Mettre à jour";
     document.getElementById("infoBox").style.display="block";
     if (it.photo) {
-      document.getElementById("photoInput").dataset.base64 = it.photo;
+    document.getElementById("photoInput").dataset.base64 = it.photo;
+    updatePhotoThumbnail(it.photo); // affiche la miniature
+    } else {
+        updatePhotoThumbnail(null); // supprime miniature si pas de photo
     }
     renderTable();
 }
@@ -341,6 +400,8 @@ function resetForm(){
     document.getElementById("descInput").value="";
     document.getElementById("photoInput").value="";
     delete document.getElementById("photoInput").dataset.base64;
+    delete document.getElementById("photoInput").dataset.url;
+    updatePhotoThumbnail(null); // supprime la miniature
     selectedIndex=null;
     document.getElementById("addBtn").value="➕ Ajouter";
 }
