@@ -12,36 +12,43 @@
 <link rel="stylesheet" href="style.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js"></script>
   <script>
-    // Fonction pour charger un script et attendre qu'il soit prêt
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-    }
-
-    async function ensureXLSX() {
-      if (typeof XLSX === "undefined") {
-        console.warn("CDN XLSX non chargé, utilisation de la version locale");
-        try {
-          await loadScript("js/xlsx.full.min.js");
-          console.log("✅ XLSX local chargé");
-        } catch (err) {
-          console.error("❌ Impossible de charger XLSX local :", err);
-        }
-      } else {
-        console.log("✅ XLSX CDN chargé avec succès");
-      }
-    }
-
-    // Appel avant de lancer ton code qui utilise XLSX
-    ensureXLSX().then(() => {
-      // Ici, tout ton code JS qui utilise XLSX
-      console.log("Prêt à utiliser XLSX !");
+   // Fonction pour charger un script et attendre qu'il soit prêt
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
     });
+  }
+
+  // Fonction pour garantir que XLSX est disponible
+  async function ensureXLSX() {
+    if (typeof XLSX === "undefined") {
+      console.warn("CDN XLSX non chargé, tentative version locale...");
+      try {
+        await loadScript("js/xlsx.full.min.js"); // <-- fichier local
+        console.log("✅ XLSX local chargé");
+      } catch (err) {
+        console.error("❌ Impossible de charger XLSX local :", err);
+      }
+    } else {
+      console.log("✅ XLSX CDN chargé avec succès");
+    }
+  }
+
+  // Charger le CDN en priorité
+  (async () => {
+    try {
+      await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js");
+      console.log("✅ CDN XLSX chargé");
+    } catch {
+      console.warn("⚠️ CDN XLSX indisponible, fallback local");
+    }
+    await ensureXLSX();
+    console.log("📦 XLSX prêt à l'utilisation");
+  })();
   </script>
 </head>
 <body>
@@ -344,57 +351,76 @@ async function exportXLSXOrCSV() {
     return;
   }
 
+  // Assurer que XLSX est disponible avant de tenter l'export XLSX
   try {
-    // ✅ Tentative d'export XLSX via ton serveur
-    const resp = await fetch("https://backend-k01c.onrender.com/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: dataList })
-    });
+    await ensureXLSX();
+  } catch {
+    console.warn("❌ XLSX non disponible, export en CSV uniquement");
+  }
 
-    if (!resp.ok) throw new Error(await resp.text());
-
-    const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Simulations_TradeMaa.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.warn("⚠️ Export XLSX échoué :", err.message);
-    alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local...");
-
+  // Tentative XLSX si XLSX est chargé
+  if (typeof XLSX !== "undefined") {
     try {
-      // --- 🔄 Fallback : génération d’un CSV local ---
-      const csvHeader = [
-        "Référence", "Description", "FOB", "PCB", "CBM",
-        "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ["Référence", "Description", "FOB", "PCB", "CBM", "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"],
+        ...dataList.map(it => [
+          it.ref,
+          it.description,
+          it.fob, it.pcb, it.cbm,
+          it.pnew, it.pvp,
+          it.maritime, it.tracking, it.douane,
+          it.date || ""
+        ])
       ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, "Simulations");
 
-      const csvRows = dataList.map(it => [
-        `"${it.ref}"`,
-        `"${it.description.replace(/"/g, '""')}"`,
-        it.fob, it.pcb, it.cbm,
-        it.pnew, it.pvp,
-        it.maritime, it.tracking, it.douane,
-        `"${it.date || ''}"`
-      ].join(","));
-
-      const csvContent = [csvHeader.join(","), ...csvRows].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Simulations_TradeMaa.csv";
+      a.download = "Simulations_TradeMaa.xlsx";
       a.click();
       URL.revokeObjectURL(url);
-
-      alert("✅ Fichier CSV généré avec succès !");
-    } catch (csvErr) {
-      console.error("Erreur lors de la génération du CSV :", csvErr);
-      alert("Erreur lors de la génération du CSV local : " + csvErr.message);
+      alert("✅ Fichier XLSX généré avec succès !");
+      return; // export XLSX terminé
+    } catch (err) {
+      console.warn("⚠️ Export XLSX échoué :", err.message);
+      alert("Le serveur d’export Excel ou XLSX a échoué. Génération CSV local...");
     }
+  }
+
+  // Fallback CSV
+  try {
+    const csvHeader = [
+      "Référence", "Description", "FOB", "PCB", "CBM",
+      "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"
+    ];
+
+    const csvRows = dataList.map(it => [
+      `"${it.ref}"`,
+      `"${it.description.replace(/"/g, '""')}"`,
+      it.fob, it.pcb, it.cbm,
+      it.pnew, it.pvp,
+      it.maritime, it.tracking, it.douane,
+      `"${it.date || ''}"`
+    ].join(","));
+
+    const csvContent = [csvHeader.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Simulations_TradeMaa.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    alert("✅ Fichier CSV généré avec succès !");
+  } catch (csvErr) {
+    console.error("Erreur lors de la génération du CSV :", csvErr);
+    alert("Erreur lors de la génération du CSV local : " + csvErr.message);
   }
 }
 
