@@ -290,24 +290,6 @@ function dataURItoBlob(dataURI) {
     for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
     return new Blob([ab], { type: mimeString });
 }
-// --- Photo upload ---
-function handlePhotoUpload2(event){
-   const file = event.target.files[0];
-    if (!file) return;
-
-    resizeImage(file, 700, 700, function(resizedDataUrl) {
-        // Stocke la version redimensionnée
-        event.target.dataset.base64 = resizedDataUrl;
-
-        // Crée un URL temporaire pour l'affichage dans le tableau (Safari friendly)
-        const blob = dataURItoBlob(resizedDataUrl);
-        const url = URL.createObjectURL(blob);
-        event.target.dataset.url = url;
-
-        // Rafraîchir le tableau si tu veux afficher l'image immédiatement
-        renderTable();
-    });
-}
 
 // --- Tableau ---
 function renderTable(){
