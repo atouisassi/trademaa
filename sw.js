@@ -1,12 +1,12 @@
 const CACHE_NAME = "trademaa-cache-v1";
 const urlsToCache = [
-  "./index.html",
-  "./style.css",
-  "./script.js", // si séparé
-  "./xlsx.full.min.js",
+  "index.html",
+  "style.css",
+  "script.js", // si séparé
+  "xlsx.full.min.js",
   "https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "icons/icon-192.png",
+  "icons/icon-512.png"
 ];
 
 self.addEventListener('install', event => {
