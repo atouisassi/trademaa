@@ -371,8 +371,8 @@ async function exportXLSXOrCSV() {
                      alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local..."); 
                      try { // --- 🔄 Fallback : génération d’un CSV local --- 
                      const csvHeader = [ "Référence", "Description", "FOB", "PCB", "CBM", "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date" ]; 
-                     const csvRows = dataList.map(it => [ "${it.ref}", "${it.description.replace(/"/g, '""')}", 
-                        it.fob, it.pcb, it.cbm, it.pnew, it.pvp, it.maritime, it.tracking, it.douane, "${it.date || ''}" ].join(",")); 
+                     const csvRows = dataList.map(it => [ `${it.ref}`, `${it.description.replace(/"/g, '""')}`, 
+                        it.fob, it.pcb, it.cbm, it.pnew, it.pvp, it.maritime, it.tracking, it.douane, `${it.date || ''}` ].join(",")); 
                      const csvContent = [csvHeader.join(","), ...csvRows].join("\n"); 
                      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); 
                      const url = URL.createObjectURL(blob); const a = document.createElement("a"); 
