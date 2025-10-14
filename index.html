@@ -28,7 +28,7 @@
     if (typeof XLSX === "undefined") {
       console.warn("CDN XLSX non chargé, tentative version locale...");
       try {
-        await loadScript("js/xlsx.full.min.js"); // <-- fichier local
+        await loadScript("xlsx.full.min.js"); // <-- fichier local
         console.log("✅ XLSX local chargé");
       } catch (err) {
         console.error("❌ Impossible de charger XLSX local :", err);
