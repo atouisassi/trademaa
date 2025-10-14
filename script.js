@@ -90,13 +90,12 @@ function calc(show=false){
             pnew: +parseFloat(pnew),
             pvp: +pvp.toFixed(2)
           };
-    if(show){
+    if(show){}
         document.getElementById("result").innerHTML = `
             <hr><strong>💶 Prix 2025 : ${pnew} €</strong><br>
             ${pr.toFixed(3)} : P.Brute | ${mcmp.toFixed(3)} : CMP | ${log.toFixed(3)} : Log +15%<br>
             ${rfa.toFixed(3)} : RFA | ${pv.toFixed(3)} : P.sans RFA<br>
             <strong>🏷️ Prix vente (x2) : ${pvp.toFixed(2)} €</strong><hr>`;
-    }
     return {pr,mcmp,log,pv,rfa,pvrfa,pnew,pvp};
 }
 
@@ -163,7 +162,7 @@ function handlePhotoUpload(event){
     /////
 // --- Ajouter / éditer ligne ---
 function ajouter(){
-    const result = calc(true);
+    const result = calc();
     if(!result) return;
     const ref = (document.getElementById("refInput").value || "SANS REFERENCE").toUpperCase();
     const desc = document.getElementById("descInput").value || "Sans description";
