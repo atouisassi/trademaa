@@ -347,6 +347,48 @@ function resetForm(){
 
 // --- Export XLSX + fallback CSV ---
 async function exportXLSXOrCSV() {
+    if (dataList.length === 0) { 
+        alert("Aucune donnée à exporter."); 
+        return; 
+        } 
+    try { // ✅ Tentative d'export XLSX via ton serveur 
+        const resp = await fetch("https://backend-k01c.onrender.com/export",
+        {
+            method: "POST", headers: {
+                "Content-Type": "application/json" }, 
+            body: JSON.stringify({ data: dataList }) 
+        }); 
+        if (!resp.ok) throw new Error(await resp.text());
+        const blob = await resp.blob(); 
+        const url = URL.createObjectURL(blob); 
+        const a = document.createElement("a"); 
+        a.href = url; 
+        a.download = "Simulations_TradeMaa.xlsx"; 
+        a.click(); URL.revokeObjectURL(url); 
+        } 
+        catch (err)      { 
+                    console.warn("⚠️ Export XLSX échoué :", err.message); 
+                     alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local..."); 
+                     try { // --- 🔄 Fallback : génération d’un CSV local --- 
+                     const csvHeader = [ "Référence", "Description", "FOB", "PCB", "CBM", "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date" ]; 
+                     const csvRows = dataList.map(it => [ "${it.ref}", "${it.description.replace(/"/g, '""')}", 
+                        it.fob, it.pcb, it.cbm, it.pnew, it.pvp, it.maritime, it.tracking, it.douane, "${it.date || ''}" ].join(",")); 
+                     const csvContent = [csvHeader.join(","), ...csvRows].join("\n"); 
+                     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); 
+                     const url = URL.createObjectURL(blob); const a = document.createElement("a"); 
+                     a.href = url; a.download = "Simulations_TradeMaa.csv"; 
+                     a.click(); 
+                     URL.revokeObjectURL(url); 
+                     alert("✅ Fichier CSV généré avec succès !"); 
+                    } 
+                    catch (csvErr) 
+                    { 
+                    console.error("Erreur lors de la génération du CSV :", csvErr); 
+                    alert("Erreur lors de la génération du CSV local : " + csvErr.message); 
+                    }
+                }
+    }
+async function exportXLSXOrCSV2() {
   if (dataList.length === 0) {
     alert("Aucune donnée à exporter.");
     return;
