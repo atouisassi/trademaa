@@ -367,7 +367,7 @@ async function exportXLSXOrCSV() {
             a.download = "Simulations_TradeMaa.csv"; 
             a.click(); 
             URL.revokeObjectURL(url); 
-            alert("✅ Fichier CSV complet généré avec succès !"); 
+            //alert("✅ Fichier CSV complet généré avec succès !"); 
         } 
         catch (csvErr) { 
             console.error("Erreur lors de la génération du CSV :", csvErr); 
