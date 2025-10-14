@@ -353,13 +353,31 @@ async function exportXLSXOrCSV() {
     if (dataList.length === 0) { 
         alert("Aucune donnée à exporter."); 
         return; 
-        } 
-    try { // ✅ Tentative d'export XLSX via ton serveur 
-        const resp = await fetch("https://backend-k01c.onrender.com/export",
-        {
-            method: "POST", headers: {
-                "Content-Type": "application/json" }, 
-            body: JSON.stringify({ data: dataList }) 
+    } 
+    const roundedData = dataList.map(it => ({
+        ...it,
+        fob: parseFloat(it.fob).toFixed(3),
+        pcb: parseFloat(it.pcb).toFixed(3),
+        cbm: parseFloat(it.cbm).toFixed(5), // CBM avec 5 décimales pour précision
+        pr: parseFloat(it.pr).toFixed(3),
+        mcmp: parseFloat(it.mcmp).toFixed(3),
+        log: parseFloat(it.log).toFixed(3),
+        pv: parseFloat(it.pv).toFixed(3),
+        rfa: parseFloat(it.rfa).toFixed(3),
+        pvrfa: parseFloat(it.pvrfa).toFixed(3),
+        pnew: parseFloat(it.pnew).toFixed(3),
+        pvp: parseFloat(it.pvp).toFixed(3),
+        maritime: parseFloat(it.maritime).toFixed(3),
+        tracking: parseFloat(it.tracking).toFixed(3),
+        douane: parseFloat(it.douane).toFixed(3),
+        date: it.date || ""
+    }));
+    try { 
+        // Tentative d'export XLSX via le backend
+        const resp = await fetch("https://backend-k01c.onrender.com/export", {
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ data: roundedData }) 
         }); 
         if (!resp.ok) throw new Error(await resp.text());
         const blob = await resp.blob(); 
@@ -367,30 +385,59 @@ async function exportXLSXOrCSV() {
         const a = document.createElement("a"); 
         a.href = url; 
         a.download = "Simulations_TradeMaa.xlsx"; 
-        a.click(); URL.revokeObjectURL(url); 
+        a.click(); 
+        URL.revokeObjectURL(url); 
+    } 
+    catch (err) { 
+        console.warn("⚠️ Export XLSX échoué :", err.message); 
+        alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local..."); 
+
+        try { 
+            // --- CSV local complet ---
+            const csvHeader = [
+                "Référence", "Description", "FOB", "PCB", "CBM",
+                "Prix_brute", "M/CMP", "Log +15%", "Prix_sans_RFA",
+                "RFA", "Prix_2025", "Prix_vente",
+                "Maritime", "Tracking", "Douane", "Date", "Photo"
+            ];
+
+            const csvRows = dataList.map(it => [
+                `"${it.ref}"`,
+                `"${it.description.replace(/"/g, '""')}"`,
+                Number(it.fob).toFixed(3),
+                it.pcb,                    // PCB laissé tel quel
+                it.cbm,                    // CBM laissé tel quel
+                Number(it.pr).toFixed(3),
+                Number(it.mcmp).toFixed(3),
+                Number(it.log).toFixed(3),
+                Number(it.pv).toFixed(3),
+                Number(it.rfa).toFixed(3),
+                Number(it.pnew).toFixed(3),
+                Number(it.pvp).toFixed(3),
+                Number(it.maritime).toFixed(3),
+                Number(it.tracking).toFixed(3),
+                Number(it.douane).toFixed(3),
+                `"${it.date || ''}"`,
+                it.photo ? `"${it.photo}"` : ""
+            ].join(","));
+
+            const csvContent = [csvHeader.join(","), ...csvRows].join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); 
+            const url = URL.createObjectURL(blob); 
+            const a = document.createElement("a"); 
+            a.href = url; 
+            a.download = "Simulations_TradeMaa.csv"; 
+            a.click(); 
+            URL.revokeObjectURL(url); 
+            alert("✅ Fichier CSV complet généré avec succès !"); 
         } 
-        catch (err)      { 
-                    console.warn("⚠️ Export XLSX échoué :", err.message); 
-                     alert("Le serveur d’export Excel est indisponible. Génération d’un CSV local..."); 
-                     try { // --- 🔄 Fallback : génération d’un CSV local --- 
-                     const csvHeader = [ "Référence", "Description", "FOB", "PCB", "CBM", "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date" ]; 
-                     const csvRows = dataList.map(it => [ `${it.ref}`, `${it.description.replace(/"/g, '""')}`, 
-                        it.fob, it.pcb, it.cbm, it.pnew, it.pvp, it.maritime, it.tracking, it.douane, `${it.date || ''}` ].join(",")); 
-                     const csvContent = [csvHeader.join(","), ...csvRows].join("\n"); 
-                     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); 
-                     const url = URL.createObjectURL(blob); const a = document.createElement("a"); 
-                     a.href = url; a.download = "Simulations_TradeMaa.csv"; 
-                     a.click(); 
-                     URL.revokeObjectURL(url); 
-                     alert("✅ Fichier CSV généré avec succès !"); 
-                    } 
-                    catch (csvErr) 
-                    { 
-                    console.error("Erreur lors de la génération du CSV :", csvErr); 
-                    alert("Erreur lors de la génération du CSV local : " + csvErr.message); 
-                    }
-                }
+        catch (csvErr) { 
+            console.error("Erreur lors de la génération du CSV :", csvErr); 
+            alert("Erreur lors de la génération du CSV local : " + csvErr.message); 
+        }
     }
+}
+
 
 
 if ("serviceWorker" in navigator) {
