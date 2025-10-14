@@ -11,46 +11,6 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <title>Calcule Trade Maa</title>
 <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js"></script>
-  <script>
-   // Fonction pour charger un script et attendre qu'il soit prêt
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
-  // Fonction pour garantir que XLSX est disponible
-  async function ensureXLSX() {
-    if (typeof XLSX === "undefined") {
-      console.warn("CDN XLSX non chargé, tentative version locale...");
-      try {
-        await loadScript("xlsx.full.min.js"); // <-- fichier local
-        console.log("✅ XLSX local chargé");
-      } catch (err) {
-        console.error("❌ Impossible de charger XLSX local :", err);
-      }
-    } else {
-      console.log("✅ XLSX CDN chargé avec succès");
-    }
-  }
-
-  // Charger le CDN en priorité
-  (async () => {
-    try {
-      await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js");
-      console.log("✅ CDN XLSX chargé");
-    } catch {
-      console.warn("⚠️ CDN XLSX indisponible, fallback local");
-    }
-    await ensureXLSX();
-    console.log("📦 XLSX prêt à l'utilisation");
-  })();
-  </script>
 </head>
 <body>
 <div class="container">
@@ -449,84 +409,6 @@ async function exportXLSXOrCSV() {
                     }
                 }
     }
-async function exportXLSXOrCSV2() {
-  if (dataList.length === 0) {
-    alert("Aucune donnée à exporter.");
-    return;
-  }
-
-  // Assurer que XLSX est disponible avant de tenter l'export XLSX
-  try {
-    await ensureXLSX();
-  } catch {
-    console.warn("❌ XLSX non disponible, export en CSV uniquement");
-  }
-
-  // Tentative XLSX si XLSX est chargé
-  if (typeof XLSX !== "undefined") {
-    try {
-      const wb = XLSX.utils.book_new();
-      const wsData = [
-        ["Référence", "Description", "FOB", "PCB", "CBM", "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"],
-        ...dataList.map(it => [
-          it.ref,
-          it.description,
-          it.fob, it.pcb, it.cbm,
-          it.pnew, it.pvp,
-          it.maritime, it.tracking, it.douane,
-          it.date || ""
-        ])
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(wb, ws, "Simulations");
-
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Simulations_TradeMaa.xlsx";
-      a.click();
-      URL.revokeObjectURL(url);
-      alert("✅ Fichier XLSX généré avec succès !");
-      return; // export XLSX terminé
-    } catch (err) {
-      console.warn("⚠️ Export XLSX échoué :", err.message);
-      alert("Le serveur d’export Excel ou XLSX a échoué. Génération CSV local...");
-    }
-  }
-
-  // Fallback CSV
-  try {
-    const csvHeader = [
-      "Référence", "Description", "FOB", "PCB", "CBM",
-      "Prix_2025", "Prix_vente", "Maritime", "Tracking", "Douane", "Date"
-    ];
-
-    const csvRows = dataList.map(it => [
-      `"${it.ref}"`,
-      `"${it.description.replace(/"/g, '""')}"`,
-      it.fob, it.pcb, it.cbm,
-      it.pnew, it.pvp,
-      it.maritime, it.tracking, it.douane,
-      `"${it.date || ''}"`
-    ].join(","));
-
-    const csvContent = [csvHeader.join(","), ...csvRows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Simulations_TradeMaa.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-
-    alert("✅ Fichier CSV généré avec succès !");
-  } catch (csvErr) {
-    console.error("Erreur lors de la génération du CSV :", csvErr);
-    alert("Erreur lors de la génération du CSV local : " + csvErr.message);
-  }
-}
 
 
 if ("serviceWorker" in navigator) {
