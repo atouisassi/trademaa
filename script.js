@@ -284,9 +284,144 @@ function resetForm(){
     selectedIndex=null;
     document.getElementById("addBtn").value="➕ Ajouter";
 }
+// --- Export XLSX + fallback HTML ---
+async function exportXLSXOrCSV() {
+    if (dataList.length === 0) { 
+        alert("Aucune donnée à exporter."); 
+        return; 
+    } 
+
+    const roundedData = dataList.map(it => ({
+        ...it,
+        fob: parseFloat(it.fob).toFixed(3),
+        pcb: parseFloat(it.pcb).toFixed(0),
+        cbm: parseFloat(it.cbm).toFixed(5),
+        pr: parseFloat(it.pr).toFixed(3),
+        mcmp: parseFloat(it.mcmp).toFixed(3),
+        log: parseFloat(it.log).toFixed(3),
+        pv: parseFloat(it.pv).toFixed(3),
+        rfa: parseFloat(it.rfa).toFixed(3),
+        pvrfa: parseFloat(it.pvrfa).toFixed(3),
+        pnew: parseFloat(it.pnew).toFixed(2),
+        pvp: parseFloat(it.pvp).toFixed(2),
+        maritime: parseFloat(it.maritime).toFixed(2),
+        tracking: parseFloat(it.tracking).toFixed(2),
+        douane: parseFloat(it.douane).toFixed(2),
+        date: it.date || ""
+    }));
+
+    try { 
+        // Tentative d'export XLSX via le backend
+        const resp = await fetch("https://backend-k01c.onrender.com/export", {
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ data: roundedData }) 
+        }); 
+        if (!resp.ok) throw new Error(await resp.text());
+        const blob = await resp.blob(); 
+        const url = URL.createObjectURL(blob); 
+        const a = document.createElement("a"); 
+        a.href = url; 
+        a.download = "Simulations_TradeMaa.xlsx"; 
+        a.click(); 
+        URL.revokeObjectURL(url); 
+    } 
+    catch (err) { 
+        console.warn("⚠️ Export XLSX échoué :", err.message); 
+        alert("Le serveur d’export Excel est indisponible. Génération d’un fichier HTML local..."); 
+
+        try { 
+            // --- Export HTML local complet ---
+            const htmlHeader = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Simulations TradeMaa</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #aaa; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h2>📊 Simulations TradeMaa</h2>
+<p>Export du ${new Date().toLocaleString()}</p>
+<table>
+<thead>
+<tr>
+    <th>#</th>
+    <th>Référence</th>
+    <th>Description</th>
+    <th>FOB</th>
+    <th>PCB</th>
+    <th>CBM</th>
+    <th>Prix Brute</th>
+    <th>Marge CMP</th>
+    <th>Logistique +15%</th>
+    <th>P. sans RFA</th>
+    <th>RFA</th>
+    <th>Prix 2025</th>
+    <th>P. Vente Public</th>
+    <th>Maritime</th>
+    <th>Tracking</th>
+    <th>Douane</th>
+    <th>Date</th>
+    <th>Photo</th>
+</tr>
+</thead>
+<tbody>
+`;
+
+            const htmlRows = dataList.map((it, i) => `
+<tr>
+    <td>${i + 1}</td>
+    <td>${it.ref}</td>
+    <td>${it.description}</td>
+    <td>${Number(it.fob).toFixed(3)}</td>
+    <td>${Number(it.pcb)}</td>
+    <td>${Number(it.cbm).toFixed(5)}</td>
+    <td>${Number(it.pr).toFixed(3)}</td>
+    <td>${Number(it.mcmp).toFixed(3)}</td>
+    <td>${Number(it.log).toFixed(3)}</td>
+    <td>${Number(it.pv).toFixed(3)}</td>
+    <td>${Number(it.rfa).toFixed(3)}</td>
+    <td>${Number(it.pnew).toFixed(2)}</td>
+    <td>${Number(it.pvp).toFixed(2)}</td>
+    <td>${Number(it.maritime).toFixed(2)}</td>
+    <td>${Number(it.tracking).toFixed(2)}</td>
+    <td>${Number(it.douane).toFixed(2)}</td>
+    <td>${it.date || ""}</td>
+    <td>${it.photo ? `<img src="${it.photo}" alt="photo">` : "—"}</td>
+</tr>`).join("\n");
+
+            const htmlFooter = `
+</tbody>
+</table>
+</body>
+</html>`;
+
+            const htmlContent = htmlHeader + htmlRows + htmlFooter;
+
+            const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Simulations_TradeMaa.html";
+            a.click();
+            URL.revokeObjectURL(url);
+        } 
+        catch (htmlErr) { 
+            console.error("Erreur lors de la génération du HTML :", htmlErr); 
+            alert("Erreur lors de la génération du fichier HTML local : " + htmlErr.message); 
+        }
+    }
+}
 
 // --- Export XLSX + fallback CSV ---
-async function exportXLSXOrCSV() {
+async function exportXLSXOrCSV2() {
     if (dataList.length === 0) { 
         alert("Aucune donnée à exporter."); 
         return; 
