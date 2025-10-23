@@ -1,95 +1,134 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-title" content="Trade Maa">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" href="favicon.png" type="image/png">
-<title>Calcule Trade</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeMaa - Calculateur de Prix</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-<div class="container">
-    <div class="text">Calcule Trade</div>
-    <form name="formulaire" onsubmit="return false;">
-        <div class="form-row">
-            <div class="input-data"><label>FOB ($)</label><input type="number" min="0" max ="10000" name="fob" step="0.01" required></div>
-            <div class="input-data"><label>PCB</label><input type="number" min="1" max="5000" name="pcb" step ="1" required></div>
-            <div class="input-data"><label>CBM</label><input type="number" min="0" max="20" name="cbm" step="0.00001" required></div>
-        </div>
-        <div class="form-row">
-            <div class="input-data"><label>Maritime (€)</label><input type="number" name="maritime" value="2500" required></div>
-            <div class="input-data"><label>Tracking (€)</label><input type="number" name="tracking" value="1400" required></div>
-            <div class="input-data"><label>Douane (%)</label><input type="number" min="0" max="100" name="douane" value="6.5" step="0.01" required></div>
+    <div class="container">
+        <header>
+            <h1>🧮 TradeMaa Calculator</h1>
+            <p>Calculateur de prix pour import/export</p>
+        </header>
+
+        <div class="calculator-section">
+            <form name="formulaire" onsubmit="event.preventDefault(); calc(true);">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fob">FOB (€/unit)</label>
+                        <input type="number" step="0.001" id="fob" name="fob" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pcb">PCB (unit/CBM)</label>
+                        <input type="number" step="1" id="pcb" name="pcb" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cbm">CBM (m³)</label>
+                        <input type="number" step="0.00001" id="cbm" name="cbm" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maritime">Fret Maritime (€)</label>
+                        <input type="number" step="0.01" id="maritime" name="maritime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="douane">Douane (%)</label>
+                        <input type="number" step="0.01" id="douane" name="douane" value="12" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tracking">Tracking (€)</label>
+                        <input type="number" step="0.01" id="tracking" name="tracking" value="0.5" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-calc">📊 Calculer</button>
+            </form>
+
+            <div id="result" class="result-box"></div>
         </div>
 
-        <div class="submit-btns">
-            <input type="button" value="📊 Calculer" onclick="calc(true)">
-            <input type="button" id="addBtn" value="➕ Ajouter" onclick="toggleInfoBox(true)">
-            <input type="button" value="🧹 Vider" onclick="resetForm(); toggleInfoBox(false);">
-            <input type="button" value="📤 Exporter" onclick="exportXLSXOrCSV()">
+        <div class="product-info">
+            <h3>📦 Informations Produit</h3>
+            <div class="info-grid">
+                <div class="form-group">
+                    <label for="refInput">Référence</label>
+                    <input type="text" id="refInput" placeholder="REF001">
+                </div>
+                <div class="form-group">
+                    <label for="descInput">Description</label>
+                    <input type="text" id="descInput" placeholder="Description du produit">
+                </div>
+                <div class="form-group">
+                    <label for="photoInput">Photo</label>
+                    <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoUpload(event)">
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <input type="button" id="addBtn" value="➕ Ajouter" onclick="ajouter()" class="btn-primary">
+                <button type="button" onclick="resetForm()" class="btn-secondary">🔄 Reset</button>
+                <button type="button" onclick="toggleInfoBox()" class="btn-info">ℹ️ Aide</button>
+            </div>
         </div>
 
-        <div id="infoBox" class="hidden-box">
-            <div class="input-data"><label>Référence</label>
-                <input id="refInput" type="text" style="text-transform:uppercase;" autocorrect="off" autocapitalize="characters" placeholder="Ex: REF001"></div>
-            <div class="input-data"><label>Description</label><textarea id="descInput" placeholder="Description ou remarque..."></textarea></div>
-            <div class="input-data"><label>Photo (caméra ou fichier)</label>
-                <input id="photoInput" type="file" accept="image/*" onchange="handlePhotoUpload(event)"></div>
-            <input type="button" style="margin-top:4px;padding:8px" value="💾 Enregistrer la ligne" onclick="ajouter();toggleInfoBox(false);">
+        <div id="infoBox" class="info-box" style="display: none;">
+            <h4>📋 Guide d'utilisation</h4>
+            <ul>
+                <li><strong>FOB</strong>: Prix unitaire départ usine</li>
+                <li><strong>PCB</strong>: Nombre d'unités par mètre cube</li>
+                <li><strong>CBM</strong>: Volume total en mètres cubes</li>
+                <li><strong>Fret Maritime</strong>: Coût du transport maritime</li>
+                <li><strong>Douane</strong>: Pourcentage de droits de douane</li>
+                <li><strong>Tracking</strong>: Frais de suivi et administration</li>
+            </ul>
+            <button onclick="toggleInfoBox(false)" class="btn-close">Fermer</button>
         </div>
-    </form>
 
-    <div id="result" class="results"></div>
-
-    <div class="table-zone">
-        <button class="clear-btn" onclick="clearStorage()">🗑️ Effacer les données sauvegardées</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th><th>Réf.</th><th>Description</th>
-                    <th>FOB</th><th>PCB</th><th>CBM</th><th>Prix 2025</th><th>Prix vente</th><th>Photo</th><th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="table-body"><tr><td colspan="11">Aucune simulation.</td></tr></tbody>
-        </table>
+        <div class="data-section">
+            <div class="section-header">
+                <h3>📋 Simulations Sauvegardées</h3>
+                <div class="export-buttons">
+                    <button onclick="exportXLSXOrCSV()" class="btn-export">📤 Export Excel/CSV</button>
+                    <button onclick="clearStorage()" class="btn-clear">🗑️ Tout effacer</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Référence</th>
+                            <th>Description</th>
+                            <th>FOB</th>
+                            <th>PCB</th>
+                            <th>CBM</th>
+                            <th>Prix 2025</th>
+                            <th>Prix Vente</th>
+                            <th>Photo</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Les données seront insérées ici par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
- 
 
-<!-- Fenêtre d'aperçu photo -->
-<div id="photoPreview" style="
-  display:none;
-  position:fixed; inset:0;
-  background:rgba(0,0,0,0.85);
-  backdrop-filter: blur(6px);
-  justify-content:center; align-items:center;
-  flex-direction:column;
-  z-index:9999;
-">
-  <button id="closePreview" style="
-    position:absolute; top:20px; right:20px;
-    background:rgba(255,255,255,0.2);
-    border:none; color:white; font-size:24px;
-    border-radius:50%; width:40px; height:40px;
-    cursor:pointer;
-  ">✕</button>
-  
-  <img id="previewImg" src="" alt="Aperçu" style="
-    max-width:90%; max-height:80%;
-    border-radius:12px;
-    box-shadow:0 0 20px rgba(255,255,255,0.2);
-    transition:transform 0.3s ease;
-  ">
-  <div id="zoomHint" style="color:#fff; font-size:14px; margin-top:10px; opacity:0.7;">
-    🔍 Touchez pour zoomer / dézoomer
-  </div>
-</div>
+    <!-- Photo Preview Modal -->
+    <div id="photoPreview" class="photo-preview">
+        <div class="preview-content">
+            <button id="closePreview" class="close-btn">×</button>
+            <img id="previewImg" src="" alt="Aperçu">
+            <div id="zoomHint" class="zoom-hint">👆 Cliquer pour zoomer</div>
+        </div>
+    </div>
 
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
