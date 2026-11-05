@@ -142,7 +142,7 @@ function handlePhotoUpload(event){
         return;
     }
 
-    resizeImage(file, 180, 150, function(resizedDataUrl) {
+    resizeImage(file, 600, 600, function(resizedDataUrl) {
         // Stocke la version redimensionnée
         event.target.dataset.base64 = resizedDataUrl;
 
